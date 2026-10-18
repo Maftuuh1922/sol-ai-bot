@@ -1,2 +1,5 @@
 __pycache__/
 *.tmp
+node_modules/
+app/www/
+app/android/

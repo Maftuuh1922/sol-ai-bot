@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "enabled": true,
+  "mode": "paper",
+  "close_position_request": "",
+  "live_exit_request": "",
+  "strategy": {
+    "name": "ai_supertrend",
+    "timeframe": "1d"
+  },
+  "ai": {
+    "enabled": true,
+    "providers": [
+      {
+        "name": "nafnaf",
+        "enabled": true,
+        "model": "qwen3.8-flash-next"
+      },
+      {
+        "name": "gonka",
+        "enabled": true,
+        "model": "zai-org/GLM-5.3-Flash"
+      },
+      {
+        "name": "arcee",
+        "enabled": true,
+        "model": "deepseek/deepseek-v4-flash-latest"
+      }
+    ],
+    "temperature": 0.2,
+    "min_confidence": "low",
+    "extra_instruction": ""
+  },
+  "risk": {
+    "max_exposure_pct": 100,
+    "vol_target_pct": 60,
+    "atr_guard_pct": 0,
+    "stoploss_enabled": true,
+    "stoploss_pct": 10,
+    "trailing_enabled": false,
+    "trailing_pct": 5,
+    "trailing_activate_pct": 3,
+    "roi_enabled": false,
+    "minimal_roi": {
+      "0": 20,
+      "1440": 10,
+      "4320": 5
+    },
+    "cooldown_enabled": true,
+    "cooldown_minutes": 1440,
+    "max_open_positions": 1,
+    "daily_loss_enabled": true,
+    "daily_max_loss_pct": 5,
+    "total_loss_enabled": true,
+    "total_max_loss_pct": 25
+  },
+  "paper": {
+    "start_idr": 1000000
+  },
+  "live": {
+    "max_capital_idr": 500000,
+    "max_order_idr": 250000
+  },
+  "backtest": {
+    "days": 365
+  }
+}

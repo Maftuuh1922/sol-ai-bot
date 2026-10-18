@@ -1,6 +1,6 @@
 // Network-first service worker: selalu ambil data terbaru, pakai cache saat offline.
-const C = "solbot-v2";
-const SHELL = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "vendor/chart.umd.min.js"];
+const C = "solbot-v3";
+const SHELL = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "vendor/chart.umd.min.js", "vendor/lightweight-charts.js", "vendor/nacl-fast.min.js", "vendor/blake2b.js", "vendor/sealedbox.js", "market.js", "github.js", "notify.js", "settings.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(C).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k))))); self.clients.claim(); });
 self.addEventListener("fetch", e => {

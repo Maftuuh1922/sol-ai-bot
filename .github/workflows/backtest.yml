@@ -1,0 +1,42 @@
+name: Backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Jumlah hari (30-365). Kosong = dari config"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backtest
+  cancel-in-progress: true
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Backtest strategi + risiko dari config
+        env:
+          DAYS: ${{ inputs.days }}
+        run: |
+          if [ -n "$DAYS" ]; then python3 bot/backtest.py --days "$DAYS"; else python3 bot/backtest.py; fi
+      - name: Simpan backtest.json (retry + rebase)
+        run: |
+          git config user.name "sol-ai-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/backtest.json
+          if git diff --cached --quiet; then echo "Tidak ada perubahan."; exit 0; fi
+          git commit -m "backtest: update $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            git rebase --abort 2>/dev/null || true; sleep $((i*5))
+          done
+          exit 1

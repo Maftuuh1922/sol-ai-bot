@@ -4,70 +4,180 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f19">
-<meta name="description" content="Dashboard bot trading AI SOL/IDR (Indodax) — paper trading.">
+<meta name="description" content="Bot trading SOL/IDR (Indodax): dashboard, grafik live, trade, backtest dan pengaturan.">
 <title>SOL AI Bot</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
 <script src="vendor/chart.umd.min.js" defer></script>
+<script src="vendor/lightweight-charts.js" defer></script>
+<script src="vendor/nacl-fast.min.js" defer></script>
+<script src="vendor/blake2b.js" defer></script>
+<script src="vendor/sealedbox.js" defer></script>
 <script src="app.js" defer></script>
+<script src="market.js" defer></script>
+<script src="github.js" defer></script>
+<script src="notify.js" defer></script>
+<script src="settings.js" defer></script>
 </head>
 <body>
 <header class="top">
-  <div class="brand"><img src="icon-192.png" alt="" width="32" height="32"><div><h1>SOL AI Bot</h1><small>SOL/IDR · Indodax</small></div></div>
-  <div class="acts"><span id="mode" class="badge">…</span><button id="refresh" class="iconbtn" type="button" aria-label="Muat ulang">⟳</button></div>
+  <div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div><h1>SOL AI Bot</h1><small>SOL/IDR · Indodax</small></div></div>
+  <div class="acts">
+    <span id="mode" class="badge">…</span>
+    <button id="refresh" class="iconbtn" type="button" aria-label="Muat ulang">⟳</button>
+    <button id="gear" class="iconbtn" type="button" aria-label="Pengaturan" title="Pengaturan">⚙︎</button>
+  </div>
 </header>
 
+<div id="liveBar" class="livebar" hidden>
+  <span>🔴 MODE LIVE — uang sungguhan</span>
+  <button id="stopLive" type="button" class="btn danger">STOP / kembali ke Paper</button>
+</div>
+
 <main>
-  <p id="offline" class="note small" hidden>Offline — menampilkan data terakhir yang tersimpan.</p>
-  <section class="card price">
-    <div class="label">Harga SOL/IDR <span id="priceSrc" class="muted"></span></div>
-    <div id="price" class="big">—</div>
-    <div class="muted">Update terakhir bot: <span id="updated">—</span></div>
+  <!-- ================= BERANDA ================= -->
+  <section id="v-home" class="view">
+    <p id="offline" class="note small" hidden>Offline — menampilkan data terakhir yang tersimpan.</p>
+    <p id="killNote" class="note bad small" hidden></p>
+    <p id="liveRefused" class="note small" hidden></p>
+
+    <section class="card botsw">
+      <div class="row">
+        <div><div class="label">Bot aktif</div><div id="botStatus" class="small muted">—</div></div>
+        <label class="switch big"><input id="botEnabled" type="checkbox"><span></span></label>
+      </div>
+      <div id="posLine" class="row small" hidden>
+        <span id="posText" class="muted"></span>
+        <button id="closePos" type="button" class="btn ghost sm">Tutup posisi</button>
+      </div>
+      <p id="botMsg" class="small muted" hidden></p>
+    </section>
+
+    <section class="card price">
+      <div class="row">
+        <div>
+          <div class="label">SOL/IDR <span id="priceSrc" class="muted"></span></div>
+          <div class="pxrow"><span id="price" class="big">—</span><span id="chg" class="chg"></span></div>
+        </div>
+        <div class="tfs" id="tfs">
+          <button data-tf="15m" type="button">15m</button><button data-tf="1h" type="button" class="on">1j</button><button data-tf="4h" type="button">4j</button><button data-tf="1d" type="button">1H</button>
+        </div>
+      </div>
+      <div id="mchart" class="mchart"></div>
+      <div class="row small muted"><span id="mInfo">—</span><span><span class="lg st"></span>Supertrend · ▲▼ trade bot</span></div>
+    </section>
+
+    <section class="wallets">
+      <div class="card w ai"><div class="label">🤖 Bot</div><div id="eqAi" class="mid">—</div><div id="pcAi" class="pc">—</div><div class="muted small" id="expAi"></div></div>
+      <div class="card w st"><div class="label">📈 Supertrend</div><div id="eqSt" class="mid">—</div><div id="pcSt" class="pc">—</div><div class="muted small" id="expSt"></div></div>
+      <div class="card w hd"><div class="label">💎 Hold</div><div id="eqHd" class="mid">—</div><div id="pcHd" class="pc">—</div><div class="muted small">100% SOL</div></div>
+    </section>
+    <p class="muted small center" id="startNote">Modal awal tiap dompet: Rp1.000.000 (simulasi)</p>
+
+    <section class="card decision">
+      <div class="row"><div class="label">Keputusan terakhir</div><span id="decDate" class="muted small"></span></div>
+      <div id="decAi" class="aiused">AI: —</div>
+      <div class="dgrid">
+        <div><div class="muted small">Target</div><div id="decTarget" class="mid">—</div></div>
+        <div><div class="muted small">Keyakinan</div><div id="decConf" class="mid">—</div></div>
+        <div><div class="muted small">Aksi</div><div id="decAct" class="mid">—</div></div>
+      </div>
+      <p id="decReason" class="reason">—</p>
+      <p id="decMeta" class="muted small"></p>
+      <p id="decErr" class="err small" hidden></p>
+    </section>
+
+    <section class="card">
+      <div class="label">Kurva ekuitas</div>
+      <div class="chartbox"><canvas id="chart"></canvas></div>
+      <p id="chartNote" class="muted small"></p>
+    </section>
+
+    <section class="card">
+      <div class="label">Status Supertrend (10, 3)</div>
+      <div class="row"><span id="stDir" class="pill">—</span><span class="muted small">Garis: <b id="stLine">—</b></span></div>
+      <div class="kv" id="mkt"></div>
+    </section>
+
+    <footer class="muted small">
+      ⚠️ Bukan nasihat keuangan. Tidak ada jaminan profit — kripto bisa turun tajam. Mode PAPER memakai uang simulasi.
+      Bot dicek otomatis tiap ±15 menit lewat GitHub Actions (jadwal GitHub bisa telat).
+      <br><a id="apk" class="apk" hidden>📱 Unduh aplikasi Android (APK)</a>
+    </footer>
   </section>
 
-  <section class="wallets">
-    <div class="card w ai"><div class="label">🤖 AI</div><div id="eqAi" class="mid">—</div><div id="pcAi" class="pc">—</div><div class="muted small" id="expAi"></div></div>
-    <div class="card w st"><div class="label">📈 Supertrend</div><div id="eqSt" class="mid">—</div><div id="pcSt" class="pc">—</div><div class="muted small" id="expSt"></div></div>
-    <div class="card w hd"><div class="label">💎 Hold</div><div id="eqHd" class="mid">—</div><div id="pcHd" class="pc">—</div><div class="muted small">100% SOL</div></div>
-  </section>
-  <p class="muted small center">Modal awal tiap dompet: Rp1.000.000 (simulasi)</p>
-
-  <section class="card">
-    <div class="label">Kurva ekuitas</div>
-    <div class="chartbox"><canvas id="chart"></canvas></div>
-    <p id="chartNote" class="muted small"></p>
-  </section>
-
-  <section class="card decision">
-    <div class="row"><div class="label">Keputusan AI hari ini</div><span id="decDate" class="muted small"></span></div>
-    <div class="dgrid">
-      <div><div class="muted small">Target eksposur</div><div id="decTarget" class="mid">—</div></div>
-      <div><div class="muted small">Keyakinan</div><div id="decConf" class="mid">—</div></div>
-      <div><div class="muted small">Aksi</div><div id="decAct" class="mid">—</div></div>
-    </div>
-    <p id="decReason" class="reason">—</p>
-    <p id="decMeta" class="muted small"></p>
-    <p id="decErr" class="err small" hidden></p>
-  </section>
-
-  <section class="card">
-    <div class="label">Status Supertrend (10, 3)</div>
-    <div class="row"><span id="stDir" class="pill">—</span><span class="muted small">Garis: <b id="stLine">—</b></span></div>
-    <div class="kv" id="mkt"></div>
+  <!-- ================= TRADE ================= -->
+  <section id="v-trades" class="view" hidden>
+    <section class="card">
+      <div class="row"><div class="label">Posisi terbuka</div><span id="tBook" class="tag">PAPER</span></div>
+      <div id="openPos" class="muted">Tidak ada posisi terbuka.</div>
+    </section>
+    <section class="card">
+      <div class="label">PnL</div>
+      <div class="kv" id="pnlKv"></div>
+    </section>
+    <section class="card">
+      <div class="label">Trade selesai</div>
+      <ul id="tradeList" class="hist"><li class="muted">Belum ada trade.</li></ul>
+    </section>
+    <section class="card">
+      <div class="label">Order</div>
+      <ul id="orderList" class="hist"><li class="muted">Belum ada order.</li></ul>
+    </section>
+    <section class="card">
+      <div class="label">Riwayat keputusan</div>
+      <ul id="hist" class="hist"><li class="muted">Belum ada data.</li></ul>
+    </section>
   </section>
 
-  <section class="card">
-    <div class="label">Riwayat keputusan</div>
-    <ul id="hist" class="hist"><li class="muted">Belum ada data.</li></ul>
+  <!-- ================= BACKTEST ================= -->
+  <section id="v-backtest" class="view" hidden>
+    <section class="card">
+      <div class="row"><div class="label">Backtest</div><button id="runBt" type="button" class="btn sm">Jalankan backtest</button></div>
+      <p id="btMeta" class="small muted">Belum ada hasil backtest.</p>
+      <p id="btRun" class="small" hidden></p>
+      <div class="kv" id="btKv"></div>
+    </section>
+    <section class="card">
+      <div class="label">Ekuitas backtest vs Hold</div>
+      <div class="chartbox"><canvas id="btChart"></canvas></div>
+    </section>
+    <section class="card">
+      <div class="label">Perbandingan strategi (risiko sama)</div>
+      <div class="tbl" id="btCmp"></div>
+    </section>
+    <section class="card">
+      <div class="label">Trade backtest (terakhir)</div>
+      <ul id="btTrades" class="hist"><li class="muted">—</li></ul>
+    </section>
   </section>
 
-  <footer class="muted small">
-    ⚠️ Bukan nasihat keuangan. Tidak ada jaminan profit — kripto bisa turun tajam. Mode PAPER memakai uang simulasi.
-    Bot jalan otomatis tiap hari 07:15 WIB lewat GitHub Actions.
-    <br><a id="apk" class="apk" hidden>📱 Unduh aplikasi Android (APK)</a>
-  </footer>
+  <!-- ================= NOTIFIKASI ================= -->
+  <section id="v-notif" class="view" hidden>
+    <section class="card">
+      <div class="row"><div class="label">Notifikasi</div><button id="markRead" type="button" class="btn ghost sm">Tandai dibaca</button></div>
+      <p class="small muted" id="notifHint">Riwayat kejadian bot: trade, stop-loss/trailing, kill switch, error, ringkasan harian.</p>
+      <ul id="notifList" class="hist"><li class="muted">Belum ada notifikasi.</li></ul>
+    </section>
+  </section>
+
+  <!-- ================= PENGATURAN ================= -->
+  <section id="v-settings" class="view" hidden>
+    <div id="settingsRoot"></div>
+  </section>
 </main>
+
+<nav class="bnav" id="bnav">
+  <button data-v="home" class="on" type="button"><span>🏠</span>Beranda</button>
+  <button data-v="trades" type="button"><span>📒</span>Trade</button>
+  <button data-v="backtest" type="button"><span>🧪</span>Backtest</button>
+  <button data-v="notif" type="button"><span>🔔</span>Notif<i id="unread" hidden></i></button>
+  <button data-v="settings" type="button"><span>⚙︎</span>Atur</button>
+</nav>
+
+<div id="modal" class="modal" hidden><div class="mbox" id="mbox"></div></div>
+<div id="toast" class="toast" hidden></div>
 </body>
 </html>

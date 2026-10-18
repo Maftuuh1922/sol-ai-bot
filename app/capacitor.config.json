@@ -6,6 +6,15 @@
   "android": { "backgroundColor": "#0b0f19" },
   "plugins": {
     "CapacitorHttp": { "enabled": true },
-    "SplashScreen": { "launchShowDuration": 0 }
+    "SplashScreen": { "launchShowDuration": 0 },
+    "LocalNotifications": { "smallIcon": "ic_stat_notify", "iconColor": "#9945FF" },
+    "BackgroundRunner": {
+      "label": "com.maftuuh.solaibot.check",
+      "src": "runners/background.js",
+      "event": "checkState",
+      "repeat": true,
+      "interval": 15,
+      "autoStart": true
+    }
   }
 }

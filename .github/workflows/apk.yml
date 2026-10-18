@@ -45,6 +45,22 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Setup native plugin (background runner + notifikasi)
+        working-directory: app/android
+        run: |
+          set -e
+          # Background Runner needs its JS-engine .aar on the flatDir path (plugin README)
+          sed -i "s#dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'#dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'\n        dirs '../../node_modules/@capacitor/background-runner/android/src/main/libs', 'libs'#" app/build.gradle
+          grep -n -A3 "flatDir" app/build.gradle
+          M=app/src/main/AndroidManifest.xml
+          grep -q 'xmlns:tools' $M || sed -i 's#<manifest xmlns:android="http://schemas.android.com/apk/res/android"#<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"#' $M
+          # the runner plugin declares location permissions we never use -> strip them
+          for p in ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_BACKGROUND_LOCATION; do
+            sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.$p\" tools:node=\"remove\" />\n</manifest>#" $M
+          done
+          grep -q POST_NOTIFICATIONS $M || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n</manifest>#' $M
+          cat $M
+
       - name: Ikon, splash, versi
         working-directory: app/android
         run: |
@@ -66,6 +82,11 @@ jobs:
             dim=$(identify -format '%wx%h' "$f"); w=${dim%x*}; h=${dim#*x}
             m=$(( (w<h?w:h) * 2 / 5 ))
             convert -size $dim xc:'#0b0f19' \( $ICON -resize ${m}x${m} \) -gravity center -composite "$f"
+          done
+          # monochrome status-bar icon for notifications (white lightning bolt)
+          for p in mdpi:24 hdpi:36 xhdpi:48 xxhdpi:72 xxxhdpi:96; do
+            IFS=: read d s <<< "$p"; mkdir -p $RES/drawable-$d
+            convert -size 96x96 xc:none -fill white -draw "polygon 56,6 18,54 44,54 36,90 78,38 52,38 64,6" -resize ${s}x${s} $RES/drawable-$d/ic_stat_notify.png
           done
           sed -i -E "s/versionCode [0-9]+/versionCode ${GITHUB_RUN_NUMBER}/; s/versionName \"[^\"]*\"/versionName \"1.0.${GITHUB_RUN_NUMBER}\"/" app/build.gradle
           grep -E "versionCode|versionName|applicationId" app/build.gradle
@@ -108,7 +129,9 @@ jobs:
           npx -y playwright@1.49.1 install --with-deps chromium >/dev/null 2>&1
           npx -y playwright@1.49.1 screenshot --viewport-size=390,844 --full-page --wait-for-timeout=6000 \
             http://localhost:8765/index.html preview-390.png
-          ls -la preview-390.png
+          npx -y playwright@1.49.1 screenshot --viewport-size=390,844 --full-page --wait-for-timeout=6000 \
+            "http://localhost:8765/index.html#pengaturan" settings-390.png
+          ls -la preview-390.png settings-390.png
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -135,3 +158,4 @@ jobs:
           gh release upload app-latest sol-ai-bot.apk --clobber
           gh release edit app-latest --title "SOL AI Bot (Android) — build #${GITHUB_RUN_NUMBER}" --notes "$NOTES" --latest --prerelease=false
           if [ -f preview-390.png ]; then gh release upload app-latest preview-390.png --clobber || true; fi
+          if [ -f settings-390.png ]; then gh release upload app-latest settings-390.png --clobber || true; fi

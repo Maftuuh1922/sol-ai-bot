@@ -2,8 +2,13 @@ name: SOL AI Bot
 
 on:
   schedule:
-    - cron: "15 0 * * *"   # 00:15 UTC = 07:15 WIB, setelah candle harian Indodax tutup (00:00 UTC)
+    - cron: "*/15 * * * *"   # tiap 15 menit (GitHub bisa telat 5-30 menit). Strategi hanya dievaluasi saat candle timeframe pilihan tutup.
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Paksa evaluasi strategi sekarang (true) atau cek biasa (false)"
+        required: false
+        default: "true"
 
 permissions:
   contents: write
@@ -15,38 +20,38 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          fetch-depth: 1
 
-      - name: Jalankan bot
+      - name: Jalankan bot (python bawaan runner, tanpa install)
         env:
-          BOT_MODE: ${{ vars.BOT_MODE || 'paper' }}
+          BOT_MODE: ${{ vars.BOT_MODE }}
           NAFNAF_API_KEY: ${{ secrets.NAFNAF_API_KEY }}
           NAFNAF_MODEL: ${{ vars.NAFNAF_MODEL }}
           GONKA_API_KEY: ${{ secrets.GONKA_API_KEY }}
           GONKA_MODEL: ${{ vars.GONKA_MODEL }}
           ARCEE_API_KEY: ${{ secrets.ARCEE_API_KEY }}
           ARCEE_MODEL: ${{ vars.ARCEE_MODEL }}
+          INDODAX_API_KEY: ${{ secrets.INDODAX_API_KEY }}
           INDODAX_KEY: ${{ secrets.INDODAX_KEY }}
           INDODAX_SECRET: ${{ secrets.INDODAX_SECRET }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force != 'false' }}
         run: |
-          echo "Mode: $BOT_MODE"
-          python bot/aibot.py "$BOT_MODE"
+          if [ "$FORCE" = "true" ]; then python3 bot/aibot.py run; else python3 bot/aibot.py tick; fi
 
-      - name: Simpan state.json
+      - name: Simpan state (retry + rebase)
+        if: always()
         run: |
           git config user.name "sol-ai-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data/state.json
-          if git diff --cached --quiet; then
-            echo "Tidak ada perubahan."
-          else
-            git commit -m "bot: update state $(date -u +%Y-%m-%d)"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+          git add docs/data/state.json docs/data/events.json config/bot-config.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Tidak ada perubahan."; exit 0; fi
+          git commit -m "bot: update state $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            echo "push gagal, coba lagi ($i)"; git rebase --abort 2>/dev/null || true; sleep $((i*5))
+          done
+          exit 1

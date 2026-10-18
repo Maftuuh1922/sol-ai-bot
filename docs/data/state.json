@@ -1,4 +1,45 @@
 {
+ "version": 2,
+ "books": {
+  "paper": {
+   "idr": 1000000.0,
+   "sol": 0.0,
+   "start_idr": 1000000.0,
+   "loss_base": 1000000.0,
+   "position": null,
+   "trades": [],
+   "orders": [],
+   "cooldown_until": 0,
+   "reentry_block": false,
+   "day": "2026-10-18",
+   "day_start_eq": 1000000.0,
+   "daily_block": null,
+   "seq": 0
+  },
+  "live": {
+   "idr": 500000.0,
+   "sol": 0.0,
+   "start_idr": 500000.0,
+   "loss_base": 500000.0,
+   "position": null,
+   "trades": [],
+   "orders": [],
+   "cooldown_until": 0,
+   "reentry_block": false,
+   "day": null,
+   "day_start_eq": 500000.0,
+   "daily_block": null,
+   "seq": 0
+  }
+ },
+ "bench": {
+  "idr": 1000000.0,
+  "sol": 0.0
+ },
+ "hold": {
+  "idr": 0.0,
+  "sol": 0.538678794585622
+ },
  "start_idr": 1000000.0,
  "equity": [
   {
@@ -26,51 +67,36 @@
    "ran_at": "2026-10-18T12:11:19Z"
   }
  ],
+ "events": [],
+ "event_seq": 0,
+ "last_candle": {
+  "1d": "2026-10-17T00:00Z"
+ },
+ "kill": null,
+ "config_warnings": [],
  "mode": "PAPER",
- "updated_at": "2026-10-18T12:11:19Z",
- "ai": {
-  "idr": 1000000.0,
-  "sol": 0.0
- },
- "bench": {
-  "idr": 1000000.0,
-  "sol": 0.0
- },
- "hold": {
-  "idr": 0.0,
-  "sol": 0.538678794585622
- },
- "last_date": "2026-10-17",
- "market": {
-  "date": "2026-10-17",
-  "close_idr": 1852475.0,
-  "supertrend": "DOWN",
-  "supertrend_line_idr": 2106077,
-  "days_since_trend_flip": 5,
-  "ema50_idr": 1906471,
-  "ema200_idr": 1728222,
-  "rsi14": 36.9,
-  "atr14_pct": 4.56,
-  "realized_vol_30d_annual_pct": 56.5,
-  "ret_7d_pct": -5.66,
-  "ret_30d_pct": 3.36,
-  "ret_90d_pct": 34.92,
-  "drawdown_from_365d_high_pct": -44.34,
-  "last_10_closes_idr": [
-   1970500,
-   1949338,
-   1963516,
-   1982000,
-   1890000,
-   1906032,
-   1868540,
-   1888088,
-   1874998,
-   1852475
-  ]
- },
- "exposure": {
-  "ai": 0.0,
-  "bench": 0.0
+ "requested_mode": "PAPER",
+ "price": 1833056.0,
+ "price_at": "2026-10-18T14:34:21Z",
+ "status": "active",
+ "summary": {
+  "paper": {
+   "equity": 1000000,
+   "start": 1000000,
+   "pnl_idr": 0,
+   "exposure": 0.0,
+   "trades": 0,
+   "win_rate": null,
+   "realized_idr": 0
+  },
+  "live": {
+   "equity": 500000,
+   "start": 500000,
+   "pnl_idr": 0,
+   "exposure": 0.0,
+   "trades": 0,
+   "win_rate": null,
+   "realized_idr": 0
+  }
  }
 }
