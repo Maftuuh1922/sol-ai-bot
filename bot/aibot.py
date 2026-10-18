@@ -168,7 +168,12 @@ def call_llm(url, key, model, msgs):
         "Content-Type": "application/json", "Accept": "application/json",
         "Authorization": f"Bearer {key}", "User-Agent": "sol-ai-bot/1.0"})
     with urllib.request.urlopen(req, timeout=90) as r:
-        txt = json.load(r)["choices"][0]["message"]["content"]
+        raw = r.read().decode(errors="replace")
+        status_code = r.status
+    try:
+        txt = json.loads(raw)["choices"][0]["message"]["content"]
+    except Exception:
+        raise RuntimeError(f"HTTP {status_code} respons bukan JSON chat: {raw[:200]!r}")
     txt = txt[txt.find("{"): txt.rfind("}") + 1]
     d = json.loads(txt)
     d["target_exposure"] = max(0.0, min(1.0, float(d["target_exposure"])))
@@ -287,6 +292,15 @@ def status(s=None, px=None):
 if __name__ == "__main__":
     mode = (sys.argv[1] if len(sys.argv) > 1 else "paper").lower()
     if mode == "status": status()
+    elif mode == "probe":   # cek penyedia AI tanpa trading / tanpa ubah state
+        msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps(
+            {"market": {"supertrend": "UP", "rsi14": 55}, "current_exposure": 0, "your_last_decisions": []})}]
+        ok = False
+        for name, url, key, model in providers():
+            try: print(f"OK  {name}:{model} ->", call_llm(url, key, model, msgs)); ok = True
+            except Exception as e: print(f"ERR {name}:{model} -> {describe_err(e)}")
+        if not providers(): print("Tidak ada penyedia AI yang dikonfigurasi.")
+        sys.exit(0 if ok else 1)
     elif mode in ("paper", "live"):
         if mode == "live" and not (os.environ.get("INDODAX_KEY") and os.environ.get("INDODAX_SECRET")):
             sys.exit("Mode live butuh secret INDODAX_KEY dan INDODAX_SECRET.")
