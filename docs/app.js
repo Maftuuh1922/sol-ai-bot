@@ -108,6 +108,8 @@ function drawChart(pts, start, livePt) {
     { label: "Supertrend", data: ser("bench"), borderColor: "#5a8cf0", backgroundColor: "#5a8cf0" },
     { label: "Hold", data: ser("hold"), borderColor: "#f5b942", backgroundColor: "#f5b942" },
   ].map(d => Object.assign(d, { tension: .25, pointRadius: data.length > 40 ? 0 : 3, borderWidth: 2, spanGaps: true }));
+  const vals = ds.flatMap(d => d.data).filter(v => v != null);
+  const lo = Math.min(...vals), hi = Math.max(...vals), pad = Math.max((hi - lo) * 0.1, start * 0.01);
   if (chart) chart.destroy();
   chart = new Chart($("chart"), {
     type: "line", data: { labels, datasets: ds },
@@ -117,7 +119,8 @@ function drawChart(pts, start, livePt) {
         tooltip: { callbacks: { label: c => `${c.dataset.label}: ${rp(c.parsed.y)}` } } },
       scales: {
         x: { ticks: { color: "#8b97ad", maxTicksLimit: 6 }, grid: { color: "#1b2336" } },
-        y: { ticks: { color: "#8b97ad", callback: v => (v / 1e6).toFixed(2).replace(".", ",") + " jt" }, grid: { color: "#1b2336" } },
+        y: { suggestedMin: lo - pad, suggestedMax: hi + pad,
+             ticks: { color: "#8b97ad", maxTicksLimit: 6, callback: v => (v / 1e6).toFixed(hi - lo < start * 0.05 ? 3 : 2).replace(".", ",") + " jt" }, grid: { color: "#1b2336" } },
       },
     },
   });
