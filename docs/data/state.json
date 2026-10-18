@@ -48,6 +48,14 @@
    "ai": 1000000,
    "bench": 1000000,
    "hold": 997889
+  },
+  {
+   "t": 1792337901,
+   "date": "2026-10-17",
+   "close": 1830953.0,
+   "ai": 1000000,
+   "bench": 1000000,
+   "hold": 986296
   }
  ],
  "log": [
@@ -65,6 +73,29 @@
    "supertrend": "DOWN",
    "error": "github-models:openai/gpt-4.1-mini -> JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
    "ran_at": "2026-10-18T12:11:19Z"
+  },
+  {
+   "candle": "2026-10-17T00:00Z",
+   "date": "2026-10-17",
+   "tf": "1d",
+   "close": 1830953.0,
+   "strategy": "ai_supertrend",
+   "signal": "OUT",
+   "ai_target": null,
+   "target": 0.0,
+   "cap": 1.0,
+   "final": 0.0,
+   "confidence": "rule",
+   "reason": "AI dimatikan/tidak ada key; aturan Supertrend.",
+   "provider": "rule:supertrend",
+   "provider_label": "Aturan · Supertrend",
+   "action": "HOLD",
+   "bench_action": "HOLD",
+   "supertrend": "DOWN",
+   "blocked": null,
+   "error": null,
+   "mode": "PAPER",
+   "ran_at": "2026-10-18T15:38:21Z"
   }
  ],
  "events": [],
@@ -76,8 +107,8 @@
  "config_warnings": [],
  "mode": "PAPER",
  "requested_mode": "PAPER",
- "price": 1833056.0,
- "price_at": "2026-10-18T14:34:21Z",
+ "price": 1830953.0,
+ "price_at": "2026-10-18T15:38:21Z",
  "status": "active",
  "summary": {
   "paper": {
@@ -98,5 +129,38 @@
    "win_rate": null,
    "realized_idr": 0
   }
- }
+ },
+ "market": {
+  "timeframe": "1d",
+  "candle_time": "2026-10-17T00:00Z",
+  "date": "2026-10-17",
+  "close_idr": 1852475.0,
+  "supertrend": "DOWN",
+  "supertrend_line_idr": 2106077,
+  "bars_since_trend_flip": 5,
+  "ema50_idr": 1906470,
+  "ema200_idr": 1693717,
+  "rsi14": 36.9,
+  "atr14_pct": 4.56,
+  "daily_atr14_pct": 4.56,
+  "realized_vol_30d_annual_pct": 56.5,
+  "ret_7d_pct": -5.66,
+  "ret_30d_pct": 3.36,
+  "ret_90d_pct": 34.92,
+  "ret_10bars_pct": -11.22,
+  "drawdown_from_365d_high_pct": -25.28,
+  "last_10_closes_idr": [
+   1970500,
+   1949338,
+   1963516,
+   1982000,
+   1890000,
+   1906032,
+   1868540,
+   1888088,
+   1874998,
+   1852475
+  ]
+ },
+ "updated_at": "2026-10-18T15:38:21Z"
 }
