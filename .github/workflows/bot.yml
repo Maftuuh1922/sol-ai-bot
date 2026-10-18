@@ -1,0 +1,51 @@
+name: SOL AI Bot
+
+on:
+  schedule:
+    - cron: "15 0 * * *"   # 00:15 UTC = 07:15 WIB, setelah candle harian Indodax tutup (00:00 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  models: read
+
+concurrency:
+  group: sol-ai-bot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Jalankan bot
+        env:
+          BOT_MODE: ${{ vars.BOT_MODE || 'paper' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_MODEL: ${{ vars.GH_MODEL }}
+          ARCEE_API_KEY: ${{ secrets.ARCEE_API_KEY }}
+          ARCEE_MODEL: ${{ vars.ARCEE_MODEL }}
+          INDODAX_KEY: ${{ secrets.INDODAX_KEY }}
+          INDODAX_SECRET: ${{ secrets.INDODAX_SECRET }}
+        run: |
+          echo "Mode: $BOT_MODE"
+          python bot/aibot.py "$BOT_MODE"
+
+      - name: Simpan state.json
+        run: |
+          git config user.name "sol-ai-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/state.json
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan."
+          else
+            git commit -m "bot: update state $(date -u +%Y-%m-%d)"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
