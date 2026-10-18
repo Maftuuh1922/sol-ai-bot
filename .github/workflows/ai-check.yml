@@ -5,12 +5,11 @@ on:
 
 permissions:
   contents: read
-  models: read
 
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,8 +17,10 @@ jobs:
           python-version: "3.12"
       - name: Tes penyedia AI (tanpa trading)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_MODEL: ${{ vars.GH_MODEL }}
+          NAFNAF_API_KEY: ${{ secrets.NAFNAF_API_KEY }}
+          NAFNAF_MODEL: ${{ vars.NAFNAF_MODEL }}
+          GONKA_API_KEY: ${{ secrets.GONKA_API_KEY }}
+          GONKA_MODEL: ${{ vars.GONKA_MODEL }}
           ARCEE_API_KEY: ${{ secrets.ARCEE_API_KEY }}
           ARCEE_MODEL: ${{ vars.ARCEE_MODEL }}
         run: python bot/aibot.py probe

@@ -1,5 +1,12 @@
 "use strict";
 const $ = id => document.getElementById(id);
+const REPO = "Maftuuh1922/sol-ai-bot";
+const RAW_STATE = `https://raw.githubusercontent.com/${REPO}/main/docs/data/state.json`;
+const APK_URL = `https://github.com/${REPO}/releases/latest/download/sol-ai-bot.apk`;
+const IS_APP = !!(window.Capacitor && (typeof window.Capacitor.isNativePlatform !== "function" || window.Capacitor.isNativePlatform()));
+// Served from the repo itself (GitHub Pages) -> relative file is the freshest; otherwise (APK, local file, other host) use raw GitHub.
+const ON_PAGES = /\.github\.io$/i.test(location.hostname);
+const CACHE_KEY = "solbot-state-v1";
 const START = 1000000;
 const rp = v => v == null || isNaN(v) ? "—" : "Rp" + Math.round(v).toLocaleString("id-ID");
 const pct = v => (v >= 0 ? "+" : "") + v.toFixed(2).replace(".", ",") + "%";
@@ -38,6 +45,7 @@ function render(s, px, live) {
 
   const log = s.log || [];
   const d = log[log.length - 1];
+  $("decErr").hidden = true;
   if (d) {
     $("decDate").textContent = "Candle " + d.date;
     $("decTarget").textContent = Math.round(d.final * 100) + "%";
@@ -75,10 +83,10 @@ function render(s, px, live) {
   $("mkt").innerHTML = rows.map(r => `<div><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join("");
 
   if (log.length) {
-    $("hist").innerHTML = log.slice().reverse().map(e => `<tr>
-      <td>${esc(e.date)}</td><td>${rp(e.close)}</td><td>${Math.round(e.final * 100)}%</td>
-      <td>${esc(e.action)}</td><td class="${e.supertrend === "UP" ? "up" : "dn"}">${esc(e.supertrend)}</td>
-      <td class="r">${esc(e.reason)}${e.confidence === "fallback" ? " <span class='muted'>(cadangan)</span>" : ""}</td></tr>`).join("");
+    $("hist").innerHTML = log.slice().reverse().map(e => `<li class="hi">
+      <div class="row"><b>${esc(e.date)}</b><span class="tag ${/^BUY/.test(e.action) ? "up" : /^SELL/.test(e.action) ? "dn" : ""}">${esc(e.action || "HOLD")}</span></div>
+      <div class="muted small">Close ${rp(e.close)} · Target ${Math.round(e.final * 100)}% · ST <span class="${e.supertrend === "UP" ? "up" : "dn"}">${esc(e.supertrend)}</span>${e.confidence === "fallback" ? " · cadangan" : ""}</div>
+      ${e.reason ? `<div class="hr">${esc(e.reason)}</div>` : ""}</li>`).join("");
   }
 
   drawChart(s.equity || [], start, live ? { px, ai: eAi, bench: eSt, hold: eHd } : null);
@@ -115,30 +123,71 @@ function drawChart(pts, start, livePt) {
   });
 }
 
+function withTimeout(p, ms) {
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+}
+
 async function livePrice() {
   try {
-    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 5000);
-    const r = await fetch("https://indodax.com/api/ticker/solidr", { signal: ctl.signal });
+    const r = await withTimeout(fetch("https://indodax.com/api/ticker/solidr"), 6000);
     const j = await r.json();
     const v = parseFloat(j.ticker.last);
     return isFinite(v) && v > 0 ? v : null;
-  } catch (e) { return null; }   // biasanya diblokir CORS -> pakai harga dari bot
+  } catch (e) { return null; }   // di browser biasanya diblokir CORS -> pakai harga dari bot; di APK lewat HTTP native
 }
 
-async function main() {
-  let s;
-  try {
-    const r = await fetch("data/state.json?t=" + Date.now(), { cache: "no-store" });
-    s = await r.json();
-  } catch (e) {
-    $("decReason").textContent = "Gagal memuat data bot.";
-    return;
+async function fetchJson(url) {
+  const r = await withTimeout(fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store" }), 12000);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const j = await r.json();
+  if (!j || typeof j !== "object") throw new Error("data kosong");
+  return j;
+}
+
+async function loadState() {
+  const urls = ON_PAGES ? ["data/state.json", RAW_STATE] : [RAW_STATE, "data/state.json"];
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); } catch (e) {}
+  for (const u of urls) {
+    // the bundled copy inside the APK is only a last resort, after the last good download
+    if (IS_APP && u === "data/state.json" && cached) return { s: cached, src: "cache" };
+    try {
+      const s = await fetchJson(u);
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(s)); } catch (e) {}
+      return { s, src: u === RAW_STATE ? "github" : "local" };
+    } catch (e) { /* try next */ }
   }
-  const lastClose = s.log && s.log.length ? s.log[s.log.length - 1].close : (s.market || {}).close_idr;
-  render(s, lastClose, false);
-  const lp = await livePrice();
-  if (lp) render(s, lp, true);
+  if (cached) return { s: cached, src: "cache" };
+  throw new Error("Gagal memuat data bot");
 }
 
+let lastLoad = 0, loading = false;
+async function main() {
+  if (loading) return;
+  loading = true; lastLoad = Date.now();
+  $("refresh").classList.add("spin");
+  try {
+    let res;
+    try { res = await loadState(); }
+    catch (e) { $("decReason").textContent = "Gagal memuat data bot. Cek koneksi internet lalu tekan ⟳."; return; }
+    const s = res.s;
+    $("offline").hidden = res.src !== "cache";
+    const lastClose = s.log && s.log.length ? s.log[s.log.length - 1].close : (s.market || {}).close_idr;
+    render(s, lastClose, false);
+    const lp = await livePrice();
+    if (lp) render(s, lp, true);
+  } finally {
+    loading = false;
+    $("refresh").classList.remove("spin");
+  }
+}
+
+$("refresh").addEventListener("click", main);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && Date.now() - lastLoad > 60000) main();
+});
+if (!IS_APP) {
+  const a = $("apk"); if (a) { a.href = APK_URL; a.hidden = false; }
+}
 main();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if (!IS_APP && "serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

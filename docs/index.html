@@ -10,16 +10,17 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+<script src="vendor/chart.umd.min.js" defer></script>
 <script src="app.js" defer></script>
 </head>
 <body>
 <header class="top">
   <div class="brand"><img src="icon-192.png" alt="" width="32" height="32"><div><h1>SOL AI Bot</h1><small>SOL/IDR · Indodax</small></div></div>
-  <span id="mode" class="badge">…</span>
+  <div class="acts"><span id="mode" class="badge">…</span><button id="refresh" class="iconbtn" type="button" aria-label="Muat ulang">⟳</button></div>
 </header>
 
 <main>
+  <p id="offline" class="note small" hidden>Offline — menampilkan data terakhir yang tersimpan.</p>
   <section class="card price">
     <div class="label">Harga SOL/IDR <span id="priceSrc" class="muted"></span></div>
     <div id="price" class="big">—</div>
@@ -59,15 +60,13 @@
 
   <section class="card">
     <div class="label">Riwayat keputusan</div>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Tanggal</th><th>Close</th><th>Target</th><th>Aksi AI</th><th>ST</th><th>Alasan</th></tr></thead>
-      <tbody id="hist"><tr><td colspan="6" class="muted">Belum ada data.</td></tr></tbody>
-    </table></div>
+    <ul id="hist" class="hist"><li class="muted">Belum ada data.</li></ul>
   </section>
 
   <footer class="muted small">
     ⚠️ Bukan nasihat keuangan. Tidak ada jaminan profit — kripto bisa turun tajam. Mode PAPER memakai uang simulasi.
     Bot jalan otomatis tiap hari 07:15 WIB lewat GitHub Actions.
+    <br><a id="apk" class="apk" hidden>📱 Unduh aplikasi Android (APK)</a>
   </footer>
 </main>
 </body>

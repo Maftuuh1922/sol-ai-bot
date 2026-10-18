@@ -6,7 +6,8 @@ Bot trading **SOL/IDR** di **Indodax** yang berjalan otomatis setiap hari lewat 
 > Kripto sangat fluktuatif dan bisa turun tajam. Bot ini default berjalan dalam **mode PAPER** (uang simulasi Rp1.000.000).
 > Kalau kamu menyalakan mode LIVE, semua risiko kerugian ditanggung sendiri. Jangan pakai uang yang tidak siap hilang.
 
-**Dashboard:** https://maftuuh1922.github.io/sol-ai-bot/
+**Aplikasi Android (APK):** https://github.com/Maftuuh1922/sol-ai-bot/releases/latest/download/sol-ai-bot.apk
+**Dashboard web:** https://maftuuh1922.github.io/sol-ai-bot/ (kalau GitHub Pages diaktifkan: Settings → Pages → branch `main`, folder `/docs`)
 
 ## Cara kerja
 
@@ -34,11 +35,17 @@ Fee Indodax yang dihitung: beli 0,2111%, jual 0,4211%.
 
 ## Penyedia AI
 
-Urutan yang dicoba:
+Urutan yang dicoba (semua API kompatibel OpenAI `chat/completions`; penyedia dilewati kalau secret-nya kosong):
 
-1. **Arcee** (opsional) — hanya kalau secret `ARCEE_API_KEY` diisi. Model bisa diatur lewat variable `ARCEE_MODEL` (default `deepseek/deepseek-v4-flash-latest`). Kalau error, lanjut ke langkah 2.
-2. **GitHub Models** — memakai `GITHUB_TOKEN` bawaan Actions (`permissions: models: read`). Model bisa diatur lewat variable `GH_MODEL` (default `openai/gpt-4.1-mini`).
-3. **Cadangan Supertrend** — kalau semua AI gagal, bot tetap jalan pakai aturan Supertrend. Error-nya dicatat di dashboard.
+1. **NafNaf** — secret `NAFNAF_API_KEY`, model lewat variable `NAFNAF_MODEL` (default `qwen3.8-flash-next`).
+2. **Gonka** — secret `GONKA_API_KEY`, model lewat variable `GONKA_MODEL` (default `zai-org/GLM-5.3-Flash`).
+3. **Arcee** — secret `ARCEE_API_KEY`, model lewat variable `ARCEE_MODEL` (default `deepseek/deepseek-v4-flash-latest`).
+4. **Cadangan Supertrend** — kalau semua AI gagal, bot tetap jalan pakai aturan Supertrend. Error-nya dicatat di dashboard.
+
+Isi secret di **Settings → Secrets and variables → Actions → New repository secret**. Tes cepat tanpa trading:
+**Actions → Cek AI → Run workflow** (atau lokal `python bot/aibot.py probe`).
+
+(GitHub Models tidak dipakai lagi — layanannya dihentikan 30 Juli 2026.)
 
 ## Menjalankan manual
 
@@ -49,6 +56,7 @@ Lokal:
 ```bash
 python bot/aibot.py paper    # simulasi (default)
 python bot/aibot.py status   # lihat saldo
+python bot/aibot.py probe    # tes penyedia AI
 ```
 
 ## Mode LIVE (opsional, risiko sendiri)
@@ -65,13 +73,19 @@ Repo ini publik: **jangan pernah menaruh API key di file**, selalu lewat Secrets
 
 ## Pasang di Android
 
-Buka dashboard di Chrome → menu ⋮ → **Tambahkan ke layar utama / Instal aplikasi**.
+Unduh APK: https://github.com/Maftuuh1922/sol-ai-bot/releases/latest/download/sol-ai-bot.apk → buka filenya →
+izinkan "Instal aplikasi tidak dikenal" → **Instal**. APK dibangun ulang otomatis (workflow **Build APK**) setiap ada
+perubahan di `docs/` atau `app/`; data bot selalu diambil terbaru dari repo, jadi tidak perlu install ulang tiap hari.
+Detail: [`app/README.md`](app/README.md).
 
 ## Struktur
 
 ```
 bot/aibot.py                 bot (Python, tanpa dependensi luar)
 .github/workflows/bot.yml    jadwal harian + jalankan manual
-docs/                        dashboard (GitHub Pages)
+.github/workflows/ai-check.yml  tes penyedia AI
+.github/workflows/apk.yml    build APK Android + rilis app-latest
+app/                         pembungkus Android (Capacitor)
+docs/                        dashboard (web + isi APK)
 docs/data/state.json         saldo, riwayat keputusan, kurva ekuitas
 ```

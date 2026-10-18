@@ -1,0 +1,16 @@
+{
+  "name": "sol-ai-bot-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Android wrapper (Capacitor) for the SOL AI Bot dashboard in ../docs",
+  "scripts": {
+    "web": "rm -rf www && mkdir -p www && cp -r ../docs/. www/ && rm -f www/sw.js www/.nojekyll"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

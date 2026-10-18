@@ -1,0 +1,137 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "docs/**"
+      - "!docs/data/**"
+      - ".github/workflows/apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: app/package-lock.json
+
+      - name: Siapkan web + proyek Android (Capacitor)
+        working-directory: app
+        run: |
+          npm ci
+          npm run web
+          npx cap add android
+          npx cap sync android
+
+      - name: Ikon, splash, versi
+        working-directory: app/android
+        run: |
+          set -e
+          command -v convert >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick; }
+          RES=app/src/main/res
+          ICON=../../docs/icon-512.png
+          for p in mdpi:48:108 hdpi:72:162 xhdpi:96:216 xxhdpi:144:324 xxxhdpi:192:432; do
+            IFS=: read d s f <<< "$p"
+            mkdir -p $RES/mipmap-$d
+            convert $ICON -resize ${s}x${s} $RES/mipmap-$d/ic_launcher.png
+            convert $ICON -resize ${s}x${s} \( -size ${s}x${s} xc:none -fill white -draw "circle $((s/2)),$((s/2)) $((s/2)),0" \) -compose DstIn -composite $RES/mipmap-$d/ic_launcher_round.png
+            convert $ICON -resize ${f}x${f} $RES/mipmap-$d/ic_launcher_foreground.png
+          done
+          if [ -f $RES/values/ic_launcher_background.xml ]; then
+            sed -i 's/#[0-9A-Fa-f]\{6\}/#0B0F19/' $RES/values/ic_launcher_background.xml
+          fi
+          find $RES -name 'splash.png' | while read f; do
+            dim=$(identify -format '%wx%h' "$f"); w=${dim%x*}; h=${dim#*x}
+            m=$(( (w<h?w:h) * 2 / 5 ))
+            convert -size $dim xc:'#0b0f19' \( $ICON -resize ${m}x${m} \) -gravity center -composite "$f"
+          done
+          sed -i -E "s/versionCode [0-9]+/versionCode ${GITHUB_RUN_NUMBER}/; s/versionName \"[^\"]*\"/versionName \"1.0.${GITHUB_RUN_NUMBER}\"/" app/build.gradle
+          grep -E "versionCode|versionName|applicationId" app/build.gradle
+
+      - name: Build release APK
+        working-directory: app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Tanda tangani APK
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BT"
+          IN=$(ls app/android/app/build/outputs/apk/release/*.apk | head -1)
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > /tmp/ks; KS=/tmp/ks; KSP="$KS_PASS"; ALIAS="$KEY_ALIAS"; KP="${KEY_PASS:-$KS_PASS}"
+            echo "Pakai keystore dari secret."
+          else
+            KS=app/solbot-release.p12; KSP=solaibot-public; ALIAS=solbot; KP=solaibot-public
+            echo "Pakai keystore publik app/solbot-release.p12."
+          fi
+          "$BT/zipalign" -f -p 4 "$IN" /tmp/aligned.apk
+          "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$KSP" --ks-key-alias "$ALIAS" --key-pass "pass:$KP" \
+            --out sol-ai-bot.apk /tmp/aligned.apk
+          "$BT/apksigner" verify --print-certs sol-ai-bot.apk
+          ls -la sol-ai-bot.apk
+
+      - name: Screenshot dashboard 390px (cek tampilan mobile)
+        continue-on-error: true
+        run: |
+          (cd docs && python3 -m http.server 8765 >/dev/null 2>&1 &)
+          sleep 2
+          npx -y playwright@1.49.1 install --with-deps chromium >/dev/null 2>&1
+          npx -y playwright@1.49.1 screenshot --viewport-size=390,844 --full-page --wait-for-timeout=6000 \
+            http://localhost:8765/index.html preview-390.png
+          ls -la preview-390.png
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-ai-bot-apk
+          path: sol-ai-bot.apk
+
+      - name: Terbitkan ke release app-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          git tag -f app-latest
+          git push -f origin refs/tags/app-latest
+          NOTES="APK otomatis dari commit ${GITHUB_SHA::7} (build #${GITHUB_RUN_NUMBER}).
+
+          Unduh: https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/sol-ai-bot.apk
+
+          Pasang: buka file APK di HP → izinkan 'Instal aplikasi tidak dikenal' untuk browser/File Manager → Instal.
+          Bukan nasihat keuangan; bot default mode PAPER (uang simulasi)."
+          if ! gh release view app-latest >/dev/null 2>&1; then
+            gh release create app-latest sol-ai-bot.apk --title "SOL AI Bot (Android) — build #${GITHUB_RUN_NUMBER}" --notes "$NOTES" --latest
+          fi
+          gh release upload app-latest sol-ai-bot.apk --clobber
+          gh release edit app-latest --title "SOL AI Bot (Android) — build #${GITHUB_RUN_NUMBER}" --notes "$NOTES" --latest --prerelease=false
+          if [ -f preview-390.png ]; then gh release upload app-latest preview-390.png --clobber || true; fi

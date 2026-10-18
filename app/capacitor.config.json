@@ -1,0 +1,11 @@
+{
+  "appId": "com.maftuuh.solaibot",
+  "appName": "SOL AI Bot",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "backgroundColor": "#0b0f19" },
+  "plugins": {
+    "CapacitorHttp": { "enabled": true },
+    "SplashScreen": { "launchShowDuration": 0 }
+  }
+}

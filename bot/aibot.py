@@ -5,7 +5,7 @@ SOL/IDR AI trading bot for Indodax (spot, long-or-cash, no leverage).
 Every day after the daily candle closes (07:00 WIB), the bot:
   1. pulls SOL/IDR daily candles from Indodax,
   2. computes indicators (Supertrend 10/3, EMA50/200, RSI14, ATR%, volatility, returns),
-  3. asks an LLM (Arcee if ARCEE_API_KEY is set, else GitHub Models via GITHUB_TOKEN)
+  3. asks an LLM (chain: NafNaf -> Gonka -> Arcee, whichever keys are set)
      for a target exposure 0-100% with a reason (falls back to Supertrend if every LLM fails),
   4. clamps it with hard guardrails (vol-target cap, min rebalance step, spot only),
   5. trades a paper wallet (or real Indodax orders in live mode),
@@ -15,9 +15,10 @@ Usage:
   python3 aibot.py paper          # default; simulated wallets in state.json
   python3 aibot.py live           # real orders, needs INDODAX_KEY / INDODAX_SECRET env
   python3 aibot.py status         # print wallets and last decisions
+  python3 aibot.py probe          # test every configured AI provider, no trading
 No strategy guarantees profit.
 """
-import json, os, sys, time, hmac, hashlib, math, urllib.request, urllib.parse, urllib.error
+import json, os, re, sys, time, hmac, hashlib, math, urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timezone, timedelta
 
 PAIR_TV, PAIR_API = "SOLIDR", "sol_idr"
@@ -26,9 +27,12 @@ BUY_FEE, SELL_FEE = 0.002111, 0.004211   # Indodax IDR taker (incl. 0.21% PPh on
 VOL_TARGET = 0.60      # annualised vol budget: exposure cap = VOL_TARGET / realised vol
 MAX_EXPOSURE = 1.0
 MIN_STEP = 0.10        # ignore rebalances smaller than 10% of equity
+NAFNAF_URL = "https://inference.nafnaf.ai/v1/chat/completions"
+GONKA_URL = "https://proxy.gonkabroker.com/v1/chat/completions"
 ARCEE_URL = "https://api.arcee.ai/api/v1/chat/completions"
-GH_MODELS_URL = "https://models.github.ai/inference/chat/completions"
-GH_MODEL = os.environ.get("GH_MODEL") or "openai/gpt-4.1-mini"
+LLM_MAX_TOKENS = 800          # default reply budget
+GONKA_MAX_TOKENS = 2048       # GLM reasons first (separate "reasoning" field); 800 often ran out before the JSON
+LLM_TIMEOUT = 90
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE = os.environ.get("STATE_FILE") or os.path.join(HERE, "..", "docs", "data", "state.json")
 MAX_EQUITY_POINTS = 2000
@@ -134,9 +138,9 @@ def ask_ai(feat, exposure_now, history):
             "your_last_decisions": history[-5:]}
     msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps(user)}]
     errors = []
-    for name, url, key, model in providers():
+    for name, url, key, model, max_tokens in providers():
         try:
-            d = call_llm(url, key, model, msgs)
+            d = call_llm(url, key, model, msgs, max_tokens)
             d["provider"] = f"{name}:{model}"
             return d, errors
         except Exception as e:
@@ -145,13 +149,15 @@ def ask_ai(feat, exposure_now, history):
 
 
 def providers():
-    out = []
-    if os.environ.get("ARCEE_API_KEY"):          # optional, tried first; on error falls through
-        out.append(("arcee", ARCEE_URL, os.environ["ARCEE_API_KEY"],
-                    os.environ.get("ARCEE_MODEL") or "deepseek/deepseek-v4-flash-latest"))
-    if os.environ.get("GITHUB_TOKEN"):
-        out.append(("github-models", GH_MODELS_URL, os.environ["GITHUB_TOKEN"], GH_MODEL))
-    return out
+    """Ordered chain of OpenAI-compatible providers; each is used only if its key is set.
+    (GitHub Models was removed: retired July 30 2026.)"""
+    env = os.environ.get
+    chain = [
+        ("nafnaf", NAFNAF_URL, "NAFNAF_API_KEY", env("NAFNAF_MODEL") or "qwen3.8-flash-next", LLM_MAX_TOKENS),
+        ("gonka", GONKA_URL, "GONKA_API_KEY", env("GONKA_MODEL") or "zai-org/GLM-5.3-Flash", GONKA_MAX_TOKENS),
+        ("arcee", ARCEE_URL, "ARCEE_API_KEY", env("ARCEE_MODEL") or "deepseek/deepseek-v4-flash-latest", LLM_MAX_TOKENS),
+    ]
+    return [(n, u, env(k).strip(), m, mt) for n, u, k, m, mt in chain if (env(k) or "").strip()]
 
 
 def describe_err(e):
@@ -162,20 +168,51 @@ def describe_err(e):
     return f"{type(e).__name__}: {e}"[:300]
 
 
-def call_llm(url, key, model, msgs):
-    body = json.dumps({"model": model, "temperature": 0.2, "max_tokens": 300, "messages": msgs}).encode()
+def extract_json(txt):
+    """Pull the first JSON object out of an LLM reply (handles <think> blocks, code fences, padding)."""
+    t = (txt or "").strip()
+    t = re.sub(r"<think>.*?</think>", "", t, flags=re.S | re.I)
+    t = re.sub(r"^.*?</think>", "", t, flags=re.S | re.I)          # unterminated-open variant
+    t = re.sub(r"```(?:json)?", "", t, flags=re.I).strip()
+    start = t.find("{")
+    if start < 0: raise ValueError(f"tidak ada JSON di jawaban: {t[:150]!r}")
+    depth, in_str, esc = 0, False, False
+    for i in range(start, len(t)):
+        ch = t[i]
+        if in_str:
+            if esc: esc = False
+            elif ch == "\\": esc = True
+            elif ch == '"': in_str = False
+        elif ch == '"': in_str = True
+        elif ch == "{": depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0: return json.loads(t[start:i + 1])
+    raise ValueError(f"JSON tidak lengkap: {t[start:start+150]!r}")
+
+
+def call_llm(url, key, model, msgs, max_tokens=LLM_MAX_TOKENS):
+    body = json.dumps({"model": model, "temperature": 0.2, "max_tokens": max_tokens, "messages": msgs}).encode()
     req = urllib.request.Request(url, data=body, method="POST", headers={
         "Content-Type": "application/json", "Accept": "application/json",
         "Authorization": f"Bearer {key}", "User-Agent": "sol-ai-bot/1.0"})
-    with urllib.request.urlopen(req, timeout=90) as r:
+    with urllib.request.urlopen(req, timeout=LLM_TIMEOUT) as r:
         raw = r.read().decode(errors="replace")
         status_code = r.status
     try:
-        txt = json.loads(raw)["choices"][0]["message"]["content"]
+        choice = json.loads(raw)["choices"][0]; msg = choice["message"]
     except Exception:
         raise RuntimeError(f"HTTP {status_code} respons bukan JSON chat: {raw[:200]!r}")
-    txt = txt[txt.find("{"): txt.rfind("}") + 1]
-    d = json.loads(txt)
+    txt = msg.get("content") or ""
+    if not txt.strip() and choice.get("finish_reason") == "length":
+        raise RuntimeError(f"jawaban kosong: token habis untuk reasoning (max_tokens={max_tokens})")
+    try:
+        d = extract_json(txt)
+    except ValueError:
+        # some reasoning models leave content empty and put everything in a reasoning field
+        alt = msg.get("reasoning") or msg.get("reasoning_content") or ""
+        if not alt: raise
+        d = extract_json(alt)
     d["target_exposure"] = max(0.0, min(1.0, float(d["target_exposure"])))
     if d.get("confidence") not in ("low", "medium", "high"): d["confidence"] = "medium"
     d["reason"] = str(d.get("reason", ""))[:400]
@@ -296,13 +333,16 @@ if __name__ == "__main__":
         msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps(
             {"market": {"supertrend": "UP", "rsi14": 55}, "current_exposure": 0, "your_last_decisions": []})}]
         ok = False
-        for name, url, key, model in providers():
-            try: print(f"OK  {name}:{model} ->", call_llm(url, key, model, msgs)); ok = True
-            except Exception as e: print(f"ERR {name}:{model} -> {describe_err(e)}")
+        for name, url, key, model, max_tokens in providers():
+            t0 = time.time()
+            try:
+                d = call_llm(url, key, model, msgs, max_tokens)
+                print(f"OK  {name}:{model} ({time.time()-t0:.1f}s) -> {d}"); ok = True
+            except Exception as e: print(f"ERR {name}:{model} ({time.time()-t0:.1f}s) -> {describe_err(e)}")
         if not providers(): print("Tidak ada penyedia AI yang dikonfigurasi.")
         sys.exit(0 if ok else 1)
     elif mode in ("paper", "live"):
         if mode == "live" and not (os.environ.get("INDODAX_KEY") and os.environ.get("INDODAX_SECRET")):
             sys.exit("Mode live butuh secret INDODAX_KEY dan INDODAX_SECRET.")
         run(live=(mode == "live"))
-    else: sys.exit("Pakai: aibot.py paper|live|status")
+    else: sys.exit("Pakai: aibot.py paper|live|status|probe")
