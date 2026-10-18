@@ -56,6 +56,14 @@
    "ai": 1000000,
    "bench": 1000000,
    "hold": 986296
+  },
+  {
+   "t": 1792338360,
+   "date": "2026-10-17",
+   "close": 1828312.0,
+   "ai": 1000000,
+   "bench": 1000000,
+   "hold": 984873
   }
  ],
  "log": [
@@ -96,6 +104,29 @@
    "error": null,
    "mode": "PAPER",
    "ran_at": "2026-10-18T15:38:21Z"
+  },
+  {
+   "candle": "2026-10-17T00:00Z",
+   "date": "2026-10-17",
+   "tf": "1d",
+   "close": 1828312.0,
+   "strategy": "ai_supertrend",
+   "signal": "OUT",
+   "ai_target": 0.0,
+   "target": 0.0,
+   "cap": 1.0,
+   "final": 0.0,
+   "confidence": "high",
+   "reason": "Supertrend masih DOWN dengan harga di bawah garis supertrend dan EMA50, sinyal OUT konsisten dengan aturan trend-following. Tetap 0 eksposur sampai tren benar-benar berbalik naik.",
+   "provider": "gonka:zai-org/GLM-5.3-Flash",
+   "provider_label": "Gonka · zai-org/GLM-5.3-Flash",
+   "action": "HOLD",
+   "bench_action": "HOLD",
+   "supertrend": "DOWN",
+   "blocked": null,
+   "error": null,
+   "mode": "PAPER",
+   "ran_at": "2026-10-18T15:46:00Z"
   }
  ],
  "events": [],
@@ -107,8 +138,8 @@
  "config_warnings": [],
  "mode": "PAPER",
  "requested_mode": "PAPER",
- "price": 1830953.0,
- "price_at": "2026-10-18T15:38:21Z",
+ "price": 1828312.0,
+ "price_at": "2026-10-18T15:46:00Z",
  "status": "active",
  "summary": {
   "paper": {
@@ -162,5 +193,5 @@
    1852475
   ]
  },
- "updated_at": "2026-10-18T15:38:21Z"
+ "updated_at": "2026-10-18T15:46:00Z"
 }
