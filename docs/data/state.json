@@ -11,7 +11,7 @@
    "orders": [],
    "cooldown_until": 0,
    "reentry_block": false,
-   "day": "2026-10-18",
+   "day": "2026-10-19",
    "day_start_eq": 1000000.0,
    "daily_block": null,
    "seq": 0
@@ -129,8 +129,19 @@
    "ran_at": "2026-10-18T15:46:00Z"
   }
  ],
- "events": [],
- "event_seq": 0,
+ "events": [
+  {
+   "id": "ev1",
+   "seq": 1,
+   "ts": 1792346987,
+   "at": "2026-10-18T18:09:47Z",
+   "type": "summary",
+   "title": "Ringkasan 2026-10-18",
+   "body": "Ekuitas Rp1.000.000 (+0.00% hari itu), 0 trade ditutup, eksposur 0%, SOL Rp1.833.450. Bot AKTIF.",
+   "mode": "PAPER"
+  }
+ ],
+ "event_seq": 1,
  "last_candle": {
   "1d": "2026-10-17T00:00Z"
  },
@@ -138,8 +149,8 @@
  "config_warnings": [],
  "mode": "PAPER",
  "requested_mode": "PAPER",
- "price": 1828312.0,
- "price_at": "2026-10-18T15:46:00Z",
+ "price": 1833450.0,
+ "price_at": "2026-10-18T18:09:46Z",
  "status": "active",
  "summary": {
   "paper": {
