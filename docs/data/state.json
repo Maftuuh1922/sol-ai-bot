@@ -1,1 +1,76 @@
-{"start_idr": 1000000.0, "equity": [], "log": [], "mode": "PAPER", "updated_at": null}
+{
+ "start_idr": 1000000.0,
+ "equity": [
+  {
+   "date": "2026-10-17",
+   "close": 1852475.0,
+   "ai": 1000000,
+   "bench": 1000000,
+   "hold": 997889
+  }
+ ],
+ "log": [
+  {
+   "date": "2026-10-17",
+   "close": 1852475.0,
+   "ai_target": 0.0,
+   "cap": 1.0,
+   "final": 0.0,
+   "confidence": "fallback",
+   "reason": "AI tidak merespons; pakai aturan Supertrend sebagai cadangan.",
+   "provider": "fallback:supertrend",
+   "action": "HOLD",
+   "bench_action": "HOLD",
+   "supertrend": "DOWN",
+   "error": "github-models:openai/gpt-4.1-mini -> JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+   "ran_at": "2026-10-18T12:11:19Z"
+  }
+ ],
+ "mode": "PAPER",
+ "updated_at": "2026-10-18T12:11:19Z",
+ "ai": {
+  "idr": 1000000.0,
+  "sol": 0.0
+ },
+ "bench": {
+  "idr": 1000000.0,
+  "sol": 0.0
+ },
+ "hold": {
+  "idr": 0.0,
+  "sol": 0.538678794585622
+ },
+ "last_date": "2026-10-17",
+ "market": {
+  "date": "2026-10-17",
+  "close_idr": 1852475.0,
+  "supertrend": "DOWN",
+  "supertrend_line_idr": 2106077,
+  "days_since_trend_flip": 5,
+  "ema50_idr": 1906471,
+  "ema200_idr": 1728222,
+  "rsi14": 36.9,
+  "atr14_pct": 4.56,
+  "realized_vol_30d_annual_pct": 56.5,
+  "ret_7d_pct": -5.66,
+  "ret_30d_pct": 3.36,
+  "ret_90d_pct": 34.92,
+  "drawdown_from_365d_high_pct": -44.34,
+  "last_10_closes_idr": [
+   1970500,
+   1949338,
+   1963516,
+   1982000,
+   1890000,
+   1906032,
+   1868540,
+   1888088,
+   1874998,
+   1852475
+  ]
+ },
+ "exposure": {
+  "ai": 0.0,
+  "bench": 0.0
+ }
+}
