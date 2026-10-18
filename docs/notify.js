@@ -8,7 +8,7 @@
   const LABEL = "com.maftuuh.solaibot.check";
   const DEF = { master: true, trade: true, risk: true, error: true, summary: true };
   const TYPE_GROUP = { trade: "trade", risk: "risk", kill: "risk", error: "error", fallback: "error", summary: "summary" };
-  const ICON = { trade: "💱", risk: "🛑", kill: "⛔", error: "⚠️", fallback: "⚠️", summary: "📊", info: "ℹ️" };
+  const ICON = { agent: "🤖", trade: "💱", risk: "🛑", kill: "⛔", error: "⚠️", fallback: "⚠️", summary: "📊", info: "ℹ️" };
 
   const settings = () => { try { return Object.assign({}, DEF, JSON.parse(localStorage.getItem(SET_KEY) || "{}")); } catch (e) { return Object.assign({}, DEF); } };
   const getNum = k => { const v = parseInt(localStorage.getItem(k) || "", 10); return isNaN(v) ? null : v; };

@@ -45,6 +45,31 @@ maks posisi terbuka (satu pair: 0 atau 1), batas rugi harian (tutup posisi + tan
 30–365 hari candle Indodax (fee dihitung) dan menulis `docs/data/backtest.json`: return, max drawdown, win rate, jumlah trade, profit factor,
 vs Hold, plus perbandingan ketiga strategi. **AI tidak disimulasikan** (untuk `ai_supertrend` dipakai aturan Supertrend). Hasil masa lalu bukan jaminan.
 
+## Multi-agen · Hyperliquid perps (PAPER saja)
+
+Terinspirasi desain "7 agen" (6 analis + 1 agen risiko yang punya veto). Venue dipilih di Pengaturan:
+**Keduanya** (default), **Hyperliquid saja**, atau **Indodax saja**. Hyperliquid **selalu PAPER** — tidak ada kode
+order live Hyperliquid di repo ini (hanya stub `live_order` yang selalu gagal).
+
+| Agen | Bukti | Vote |
+|---|---|---|
+| Tren | EMA 20/50/200 + Supertrend | long / short / flat + keyakinan + alasan |
+| Momentum | RSI 14, MACD histogram, ROC 20 bar | 〃 |
+| Volatilitas/Rezim | efficiency ratio (tren vs chop), ATR% vs median | 〃 |
+| Funding & OI | funding per jam (APR), perubahan open interest ~24 jam | 〃 |
+| Sentimen | Crypto Fear & Greed (alternative.me) | 〃 |
+| Orderbook/Likuiditas | imbalance kedalaman ±1%, spread, lonjakan volume | 〃 |
+
+- 6 agen dijawab **satu panggilan AI** untuk semua pair (rantai NafNaf → Gonka → Arcee); gagal → versi aturan.
+- **Koordinator**: skor berbobot (tren 1.5, momentum 1, rezim 0.75, funding 0.75, sentimen 0.5, likuiditas 0.5) → long/short/flat.
+- **Agen risiko (kode, bukan AI, veto final)**: ukuran = risiko % ekuitas ÷ jarak stop (2×ATR), stop-loss + take-profit (2R)
+  ditulis **sebelum** entry, leverage serendah mungkin ≤ maks (default 3x, batas keras 5x, ≤ maks bursa), maks posisi
+  bersamaan, batas rugi harian, kill switch, buffer likuidasi (≥ 2× jarak stop), minimal order $10, stop ke impas setelah +1R.
+  Trade tanpa stop selalu ditolak (juga oleh engine).
+- Simulasi: fee taker 0,045% + slippage 0,02%, funding per jam, harga likuidasi isolated margin.
+- Data: `https://api.hyperliquid.xyz/info` (publik, tanpa key). Modal paper default $250.
+- Backtest: `python3 bot/backtest_perps.py` (mode aturan, tanpa LLM) → `docs/data/backtest_perps.json`.
+
 ## Aplikasi Android
 
 Tab **Beranda** (saklar Bot aktif, grafik candle SOL/IDR live dari Indodax + garis Supertrend + penanda BELI/JUAL bot, dompet, keputusan
@@ -86,7 +111,9 @@ python3 bot/aibot.py tick      # pengecekan terjadwal
 python3 bot/aibot.py run       # paksa evaluasi
 python3 bot/aibot.py probe     # tes penyedia AI
 python3 bot/backtest.py        # backtest
+python3 bot/backtest_perps.py  # backtest multi-agen Hyperliquid (aturan)
 python3 bot/test_bot.py        # tes offline (tanpa jaringan, tidak pernah live)
+python3 bot/test_agents.py     # tes agen + agen risiko + engine perps (offline)
 ```
 
 ## Struktur
@@ -95,7 +122,9 @@ python3 bot/test_bot.py        # tes offline (tanpa jaringan, tidak pernah live)
 bot/aibot.py        bot (Python stdlib saja)        bot/engine.py     dompet, posisi, risiko
 bot/strategies.py   indikator + strategi             bot/config.py     validasi config
 bot/backtest.py     backtester                       config/bot-config.json  pengaturan (tanpa rahasia)
-.github/workflows/  bot.yml (tiap 15 mnt) · backtest.yml · ai-check.yml · apk.yml
+bot/agents.py       6 agen + koordinator + agen risiko  bot/hyperliquid.py  data publik + engine perps paper
+bot/perps.py        venue Hyperliquid (paper)        bot/backtest_perps.py  backtest multi-agen
+.github/workflows/  bot.yml (tiap 15 mnt) · backtest.yml · ai-check.yml · apk.yml · tests.yml
 app/                pembungkus Android (Capacitor)   docs/             aplikasi web (isi APK)
 ```
 

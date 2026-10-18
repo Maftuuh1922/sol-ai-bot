@@ -1,0 +1,47 @@
+name: Tes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "bot/**"
+      - "docs/*.js"
+      - "docs/runners/**"
+      - "config/**"
+      - ".github/workflows/tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Tes bot (offline, tanpa AI, tidak pernah live)
+        run: |
+          python3 bot/test_bot.py
+          python3 bot/test_agents.py
+      - name: Config valid + Hyperliquid tetap paper
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          sys.path.insert(0, "bot")
+          import config
+          cfg, warns, ok = config.load_config("config/bot-config.json", env={})
+          assert ok, warns
+          assert cfg["perps"]["max_leverage"] <= 5
+          print("config OK", cfg["venue"], cfg["perps"]["pairs"], warns)
+          PY
+          ! grep -RnE "api\.hyperliquid\.xyz/exchange|sign_l1_action|eth_account" bot/
+      - name: Sintaks JavaScript
+        run: for f in docs/*.js docs/runners/*.js; do node --check "$f"; done

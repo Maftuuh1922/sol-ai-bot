@@ -28,6 +28,7 @@ from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config import load_config, save_config, CONFIG_PATH          # noqa: E402
 import engine as E                                                 # noqa: E402
+import perps as PERPS                                              # noqa: E402
 from strategies import (features, want_series, TF_MINUTES, TF_API, STRATEGY_INFO)  # noqa: E402
 
 PAIR_TV, PAIR_API = "SOLIDR", "sol_idr"
@@ -159,6 +160,30 @@ def extract_json(txt):
 
 
 def call_llm(url, key, model, msgs, max_tokens=LLM_MAX_TOKENS, temperature=0.2):
+    d = chat_json(url, key, model, msgs, max_tokens, temperature)
+    d["target_exposure"] = max(0.0, min(1.0, float(d["target_exposure"])))
+    if d.get("confidence") not in CONF_RANK: d["confidence"] = "medium"
+    d["reason"] = str(d.get("reason", ""))[:400]
+    return d
+
+
+AGENT_MAX_TOKENS = {"nafnaf": 1800, "gonka": 3500, "arcee": 1800}
+
+
+def ask_json(cfg, system, payload):
+    """One chat call returning a JSON object, trying providers in order (used by the multi-agent layer)."""
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, separators=(",", ":"))}]
+    errors = []
+    for name, url, key, model, _mt in providers(cfg):
+        try:
+            d = chat_json(url, key, model, msgs, AGENT_MAX_TOKENS.get(name, 1800), cfg["ai"]["temperature"])
+            return d, f"{PROVIDER_LABEL[name]} · {model}"
+        except Exception as e:
+            errors.append(f"{name}:{model} -> {describe_err(e)}")
+    raise RuntimeError(" | ".join(errors) or "tidak ada penyedia AI aktif yang punya API key")
+
+
+def chat_json(url, key, model, msgs, max_tokens=LLM_MAX_TOKENS, temperature=0.2):
     body = json.dumps({"model": model, "temperature": temperature, "max_tokens": max_tokens, "messages": msgs}).encode()
     req = urllib.request.Request(url, data=body, method="POST", headers={
         "Content-Type": "application/json", "Accept": "application/json",
@@ -178,9 +203,7 @@ def call_llm(url, key, model, msgs, max_tokens=LLM_MAX_TOKENS, temperature=0.2):
         alt = msg.get("reasoning") or msg.get("reasoning_content") or ""
         if not alt: raise
         d = extract_json(alt)
-    d["target_exposure"] = max(0.0, min(1.0, float(d["target_exposure"])))
-    if d.get("confidence") not in CONF_RANK: d["confidence"] = "medium"
-    d["reason"] = str(d.get("reason", ""))[:400]
+    if not isinstance(d, dict): raise ValueError("jawaban AI bukan objek JSON")
     return d
 
 
@@ -352,6 +375,26 @@ def tick(force=False):
     ts = now_ts()
     before = json.dumps(s, sort_keys=True)
     s["config_warnings"] = warns
+    s["venue"] = cfg["venue"]
+    cfg_dirty, errors = False, []
+    if cfg["venue"] in ("both", "indodax"):
+        try: cfg_dirty = tick_indodax(cfg, s, ts, force, file_ok, before)
+        except Exception as e: errors.append("Indodax: " + describe_err(e))
+    if cfg["venue"] in ("both", "hyperliquid"):
+        req = cfg.get("close_position_request") or ""
+        close_req = bool(req) and req != s.get("perps_close_done") and "perps" in s
+        if req: s["perps_close_done"] = req
+        try:
+            llm = (lambda system, payload: ask_json(cfg, system, payload)) if providers(cfg) else None
+            PERPS.tick(cfg, s, ts, force, llm, event, iso, get,
+                       close_request=close_req, enabled=cfg["enabled"] and not (s.get("kill") or {}).get("active"))
+        except Exception as e: errors.append("Hyperliquid: " + describe_err(e))
+    finish(s, before, cfg_dirty, cfg)
+    if errors: raise RuntimeError(" | ".join(errors))
+
+
+def tick_indodax(cfg, s, ts, force, file_ok, before):
+    """Indodax SOL/IDR spot (unchanged logic). Returns cfg_dirty."""
     cfg_dirty = False
 
     # user re-enabled the bot after a kill switch -> clear it and restart the loss baseline
@@ -416,8 +459,7 @@ def tick(force=False):
         s["status"] = "disabled"
         if json.loads(before).get("status") != "disabled":
             event(s, "info", "Bot dimatikan", "Jadwal tetap jalan tapi bot tidak trading. Posisi terbuka dipertahankan.", mode)
-        finish(s, before, cfg_dirty, cfg)
-        return
+        return cfg_dirty
     s["status"] = "active"
 
     # risk exits on the open position (every tick)
@@ -447,8 +489,7 @@ def tick(force=False):
             msg += " Bot dimatikan dan mode dikembalikan ke PAPER. Nyalakan lagi dari aplikasi."
             event(s, "kill", "KILL SWITCH", msg, mode)
             s["status"] = "disabled"
-            finish(s, before, cfg_dirty, cfg)
-            return
+            return cfg_dirty
         if not any(e["type"] == "kill" and e["title"].startswith("Batas rugi harian") and wib_day(e["ts"]) == wib_day(ts) for e in s["events"]):
             event(s, "kill", "Batas rugi harian tercapai", msg + " Tidak ada entry baru sampai besok (WIB).", mode)
 
@@ -459,7 +500,7 @@ def tick(force=False):
     key = datetime.fromtimestamp(last_closed, timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
     if force or s["last_candle"].get(tf) != key:
         evaluate(cfg, s, book, mode, execu, tf, ts, px)
-    finish(s, before, cfg_dirty, cfg)
+    return cfg_dirty
 
 
 def _raw_config():
@@ -519,11 +560,22 @@ def _simple_rebalance(w, target, px):
     return f"SELL {sell:.4f} SOL"
 
 
+VOLATILE = ("price", "price_at", "summary", "config_warnings")
+PERPS_VOLATILE = ("prices", "prices_at", "summary", "last_check")
+
+
+def _cmp_view(st):
+    v = {k: x for k, x in st.items() if k not in VOLATILE}
+    if isinstance(v.get("perps"), dict):
+        v["perps"] = {k: x for k, x in v["perps"].items() if k not in PERPS_VOLATILE}
+    return json.dumps(v, sort_keys=True)
+
+
 def finish(s, before, cfg_dirty, cfg):
     s["summary"] = summary(s)
-    after = json.dumps({k: v for k, v in s.items() if k not in ("price", "price_at", "summary", "config_warnings")}, sort_keys=True)
+    after = _cmp_view(s)
     prev = json.loads(before)
-    prev_cmp = json.dumps({k: v for k, v in prev.items() if k not in ("price", "price_at", "summary", "config_warnings")}, sort_keys=True)
+    prev_cmp = _cmp_view(prev)
     if after != prev_cmp or not os.path.exists(STATE) or prev.get("config_warnings") != s.get("config_warnings"):
         save_state(s); print("state.json diperbarui.")
     else:

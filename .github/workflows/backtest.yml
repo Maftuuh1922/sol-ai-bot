@@ -7,6 +7,10 @@ on:
         description: "Jumlah hari (30-365). Kosong = dari config"
         required: false
         default: ""
+      venue:
+        description: "both | indodax | hyperliquid (multi-agen, mode aturan tanpa LLM)"
+        required: false
+        default: "both"
 
 permissions:
   contents: write
@@ -18,21 +22,28 @@ concurrency:
 jobs:
   backtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: Backtest strategi + risiko dari config
+      - name: Backtest Indodax (strategi + risiko dari config)
+        if: ${{ inputs.venue != 'hyperliquid' }}
         env:
           DAYS: ${{ inputs.days }}
         run: |
           if [ -n "$DAYS" ]; then python3 bot/backtest.py --days "$DAYS"; else python3 bot/backtest.py; fi
+      - name: Backtest multi-agen Hyperliquid perps (aturan, tanpa LLM, paper)
+        if: ${{ inputs.venue != 'indodax' }}
+        env:
+          DAYS: ${{ inputs.days }}
+        run: |
+          if [ -n "$DAYS" ]; then python3 bot/backtest_perps.py --days "$DAYS"; else python3 bot/backtest_perps.py; fi
       - name: Simpan backtest.json (retry + rebase)
         run: |
           git config user.name "sol-ai-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data/backtest.json
+          git add docs/data/backtest.json docs/data/backtest_perps.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "Tidak ada perubahan."; exit 0; fi
           git commit -m "backtest: update $(date -u +%Y-%m-%dT%H:%MZ)"
           for i in 1 2 3 4 5; do
