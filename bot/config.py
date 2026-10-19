@@ -4,7 +4,7 @@ Every field is validated and clamped. A missing, unreadable or corrupted file ne
 bad values fall back to defaults and a warning is recorded.
 Secrets (API keys) never live here; they are GitHub Actions secrets.
 """
-import copy, json, os
+import copy, json, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.environ.get("BOT_CONFIG") or os.path.join(HERE, "..", "config", "bot-config.json")
@@ -13,10 +13,15 @@ PROVIDERS = ("nafnaf", "gonka", "arcee")
 STRATEGIES = ("ai_supertrend", "ema_rsi", "bollinger")
 TIMEFRAMES = ("15m", "1h", "4h", "1d")
 CONFIDENCES = ("low", "medium", "high")
+VENUES = ("both", "hyperliquid", "indodax")   # which venue(s) the bot runs; Hyperliquid is ALWAYS paper
+PERP_TFS = ("15m", "1h", "4h", "1d")
+PAIR_RE = re.compile(r"^[A-Z0-9]{2,12}$")
+HARD_MAX_LEVERAGE = 5
 
 DEFAULTS = {
-    "version": 2,
-    "enabled": True,                      # master switch; OFF -> scheduled runs exit without trading
+    "version": 3,
+    "enabled": True,
+    "venue": "both",                      # "both" | "hyperliquid" | "indodax"                      # master switch; OFF -> scheduled runs exit without trading
     "mode": "paper",                      # "paper" | "live"  (live also needs Indodax secrets + passes runtime guardrails)
     "close_position_request": "",         # app sets a new token -> bot closes the open position once
     "live_exit_request": "",              # app STOP + sell: bot sells the LIVE book once (even after mode -> paper)
@@ -47,6 +52,25 @@ DEFAULTS = {
     "paper": {"start_idr": 1_000_000},
     "live": {"max_capital_idr": 500_000, "max_order_idr": 250_000},
     "backtest": {"days": 365},
+    # Hyperliquid perps, PAPER ONLY (there is no live Hyperliquid order code in this bot)
+    "perps": {
+        "pairs": ["SOL", "BTC", "ETH"],
+        "timeframe": "4h",                # analyst agents run when a candle of this timeframe closes
+        "paper_start_usd": 250,
+        "max_leverage": 3,                # hard cap 5x (and never above the exchange max)
+        "risk_per_trade_pct": 1.0,        # loss at the stop = this % of equity
+        "max_positions": 2,               # max concurrent positions
+        "stop_atr_mult": 2.0,             # stop distance = N x ATR(14) of the timeframe
+        "take_profit_r": 2.0,             # take-profit at N x stop distance (0 = no TP)
+        "breakeven_at_r": 1.0,            # move stop to entry after +N R (0 = off)
+        "liq_buffer_mult": 2.0,           # liquidation must be >= N x stop distance away from entry
+        "entry_threshold": 0.25,          # coordinator score needed for long/short (0..1)
+        "allow_short": True,
+        "use_llm": True,                  # LLM answers the 6 analysts in one batched call; rules otherwise
+        "daily_loss_enabled": True, "daily_max_loss_pct": 3,
+        "kill_switch_enabled": True, "total_max_loss_pct": 15,
+        "reset_request": "",              # app sets a new token -> paper perps book reset once
+    },
 }
 
 
@@ -159,6 +183,39 @@ def validate(raw, env=None):
     setn(cfg["live"], lv, "max_capital_idr", 50_000, 10_000_000_000, integer=True)
     setn(cfg["live"], lv, "max_order_idr", 10_000, 10_000_000_000, integer=True)
     setn(cfg["backtest"], sub(raw, "backtest"), "days", 30, 365, integer=True)
+
+    if "venue" in raw:
+        v = str(raw["venue"]).strip().lower()
+        if v in VENUES: cfg["venue"] = v
+        else: warn.append("venue tidak dikenal; pakai both")
+    pr, P = sub(raw, "perps"), cfg["perps"]
+    if "pairs" in pr:
+        src = pr["pairs"]
+        if isinstance(src, str): src = src.split(",")
+        pairs = []
+        if isinstance(src, list):
+            for x in src:
+                x = str(x).strip().upper().replace("-PERP", "").replace("USDC", "").replace("USD", "") if isinstance(x, (str, int)) else ""
+                if PAIR_RE.match(x) and x not in pairs: pairs.append(x)
+        if pairs: P["pairs"] = pairs[:8]
+        else: warn.append("perps.pairs kosong/tidak valid; pakai SOL, BTC, ETH")
+    if pr.get("timeframe") in PERP_TFS: P["timeframe"] = pr["timeframe"]
+    elif "timeframe" in pr: warn.append("perps.timeframe tidak dikenal; pakai 4h")
+    setn(P, pr, "paper_start_usd", 20, 10_000_000)
+    setn(P, pr, "max_leverage", 1, HARD_MAX_LEVERAGE, integer=True)
+    setn(P, pr, "risk_per_trade_pct", 0.1, 5)
+    setn(P, pr, "max_positions", 0, 8, integer=True)
+    setn(P, pr, "stop_atr_mult", 0.5, 10)
+    setn(P, pr, "take_profit_r", 0, 20)
+    setn(P, pr, "breakeven_at_r", 0, 10)
+    setn(P, pr, "liq_buffer_mult", 1, 10)
+    setn(P, pr, "entry_threshold", 0.05, 0.95)
+    setn(P, pr, "daily_max_loss_pct", 0.5, 50)
+    setn(P, pr, "total_max_loss_pct", 1, 90)
+    for k in ("allow_short", "use_llm", "daily_loss_enabled", "kill_switch_enabled"):
+        setb(P, pr, k)
+    if isinstance(pr.get("reset_request"), (str, int)) and not isinstance(pr.get("reset_request"), bool):
+        P["reset_request"] = str(pr["reset_request"])[:64]
     return cfg, warn
 
 

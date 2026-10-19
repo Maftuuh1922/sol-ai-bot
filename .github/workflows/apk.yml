@@ -131,7 +131,9 @@ jobs:
             http://localhost:8765/index.html preview-390.png
           npx -y playwright@1.49.1 screenshot --viewport-size=390,844 --full-page --wait-for-timeout=6000 \
             "http://localhost:8765/index.html#pengaturan" settings-390.png
-          ls -la preview-390.png settings-390.png
+          npx -y playwright@1.49.1 screenshot --viewport-size=390,844 --full-page --wait-for-timeout=6000 \
+            "http://localhost:8765/index.html#agen" agents-390.png || true
+          ls -la preview-390.png settings-390.png agents-390.png
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -159,3 +161,4 @@ jobs:
           gh release edit app-latest --title "SOL AI Bot (Android) — build #${GITHUB_RUN_NUMBER}" --notes "$NOTES" --latest --prerelease=false
           if [ -f preview-390.png ]; then gh release upload app-latest preview-390.png --clobber || true; fi
           if [ -f settings-390.png ]; then gh release upload app-latest settings-390.png --clobber || true; fi
+          if [ -f agents-390.png ]; then gh release upload app-latest agents-390.png --clobber || true; fi

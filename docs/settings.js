@@ -8,7 +8,7 @@
                       gonka: { label: "Gonka", models: "https://proxy.gonkabroker.com/v1/models", secret: "GONKA_API_KEY" },
                       arcee: { label: "Arcee", models: "https://api.arcee.ai/api/v1/models", secret: "ARCEE_API_KEY" } };
   const DEFAULT_CFG = {
-    version: 2, enabled: true, mode: "paper", close_position_request: "", live_exit_request: "",
+    version: 3, enabled: true, venue: "both", mode: "paper", close_position_request: "", live_exit_request: "",
     strategy: { name: "ai_supertrend", timeframe: "1d" },
     ai: { enabled: true, providers: [{ name: "nafnaf", enabled: true, model: "qwen3.8-flash-next" }, { name: "gonka", enabled: true, model: "zai-org/GLM-5.3-Flash" }, { name: "arcee", enabled: true, model: "deepseek/deepseek-v4-flash-latest" }],
           temperature: 0.2, min_confidence: "low", extra_instruction: "" },
@@ -16,7 +16,12 @@
             trailing_activate_pct: 3, roi_enabled: false, minimal_roi: { "0": 20, "1440": 10, "4320": 5 }, cooldown_enabled: true, cooldown_minutes: 1440,
             max_open_positions: 1, daily_loss_enabled: true, daily_max_loss_pct: 5, total_loss_enabled: true, total_max_loss_pct: 25 },
     paper: { start_idr: 1000000 }, live: { max_capital_idr: 500000, max_order_idr: 250000 }, backtest: { days: 365 },
+    perps: { pairs: ["SOL", "BTC", "ETH"], timeframe: "4h", paper_start_usd: 250, max_leverage: 3, risk_per_trade_pct: 1, max_positions: 2,
+             stop_atr_mult: 2, take_profit_r: 2, breakeven_at_r: 1, liq_buffer_mult: 2, entry_threshold: 0.25, allow_short: true, use_llm: true,
+             daily_loss_enabled: true, daily_max_loss_pct: 3, kill_switch_enabled: true, total_max_loss_pct: 15, reset_request: "" },
   };
+  const BASE_PAIRS = ["SOL", "BTC", "ETH"];
+  const INT_PATHS = ["risk.max_open_positions", "perps.max_leverage", "perps.max_positions"];
   const root = document.getElementById("settingsRoot");
   let secrets = new Set(), models = {}, loadedOnce = false, ghUser = null;
   const esc = SB.esc;
@@ -69,6 +74,8 @@
       ${nm("paper.start_idr", "Modal awal paper", "Rp", "Mengubahnya mereset dompet simulasi (jika belum ada trade)", "100000", "100000")}
       ${nm("backtest.days", "Periode backtest", "hari", "", "1", "30", "365")}
     </section>
+
+    ${perpsHtml(c)}
 
     <section class="sec"><h2>AI</h2>
       ${sw("ai.enabled", "AI filter / penentu ukuran", "AI+Supertrend: AI memilih eksposur. Strategi lain: AI bisa menolak entry atau mengecilkan ukuran.")}
@@ -124,6 +131,32 @@
     if (has) { GH.showLast("bot.yml", document.getElementById("botRun"), "Bot"); }
   }
 
+  function perpsHtml(c) {
+    const P = c.perps || DEFAULT_CFG.perps, extra = (P.pairs || []).filter(x => !BASE_PAIRS.includes(x));
+    return `<section class="sec" id="perpsSec"><h2>Multi-agen · <b>Hyperliquid perps</b> (paper)</h2>
+      ${sel("venue", "Venue", [["both", "Keduanya (Indodax + Hyperliquid)"], ["hyperliquid", "Hyperliquid perps saja"], ["indodax", "Indodax spot saja"]], "Hyperliquid selalu PAPER (uang simulasi). Indodax tetap seperti sebelumnya.")}
+      <div class="fld col"><label>Pair yang diizinkan <small>Maks 8. Tambahan lain (mis. HYPE, DOGE) pisahkan dengan koma.</small></label>
+        <div class="pairs">${BASE_PAIRS.map(x => `<label><input type="checkbox" data-pair="${x}" ${(P.pairs || []).includes(x) ? "checked" : ""} ${dis()}> ${x}</label>`).join("")}</div>
+        <input class="in" id="pairExtra" placeholder="pair tambahan, mis. HYPE" value="${esc(extra.join(", "))}" ${dis()} style="margin-top:6px"></div>
+      ${sel("perps.max_leverage", "Leverage maksimum", [1, 2, 3, 4, 5].map(x => [x, x + "x"]), "Batas keras 5x. Agen risiko memakai leverage serendah mungkin yang muat.")}
+      ${nm("perps.risk_per_trade_pct", "Risiko maks per trade", "%", "Rugi di stop-loss = % ini dari ekuitas", "0.1", "0.1", "5")}
+      ${sel("perps.max_positions", "Maks posisi bersamaan", [0, 1, 2, 3, 4, 5].map(x => [x, x === 0 ? "0 (tanpa entry baru)" : String(x)]))}
+      ${sel("perps.timeframe", "Timeframe agen", [["15m", "15 menit"], ["1h", "1 jam"], ["4h", "4 jam"], ["1d", "1 hari"]], "Agen menilai saat candle ini tutup (1 panggilan AI untuk semua pair). Stop/TP dicek tiap ±15 mnt.")}
+      ${nm("perps.paper_start_usd", "Modal paper", "$", "Berubah otomatis hanya jika belum ada trade; selain itu pakai Reset", "10", "20")}
+      ${nm("perps.stop_atr_mult", "Stop = N × ATR", "×", "", "0.5", "0.5", "10")}
+      ${nm("perps.take_profit_r", "Take-profit", "R", "Kelipatan jarak stop. 0 = tanpa TP", "0.5", "0", "20")}
+      ${nm("perps.breakeven_at_r", "Stop ke impas setelah", "R", "0 = mati", "0.5", "0", "10")}
+      ${nm("perps.liq_buffer_mult", "Buffer likuidasi", "× stop", "Harga likuidasi minimal sejauh N × jarak stop", "0.5", "1", "10")}
+      ${nm("perps.entry_threshold", "Ambang skor koordinator", "", "0–1. Makin tinggi makin jarang masuk", "0.05", "0.05", "0.95")}
+      ${sw("perps.allow_short", "Boleh short")}
+      ${sw("perps.use_llm", "AI untuk 6 agen analis", "Satu panggilan AI per evaluasi untuk semua pair; gagal → aturan. Agen risiko selalu kode.")}
+      ${sw("perps.daily_loss_enabled", "Batas rugi harian perps")}${nm("perps.daily_max_loss_pct", "Rugi harian maks", "%", "", "0.5", "0.5", "50")}
+      ${sw("perps.kill_switch_enabled", "Kill switch perps")}${nm("perps.total_max_loss_pct", "Rugi total maks", "%", "Kena → semua posisi paper ditutup, tanpa entry baru sampai reset", "1", "1", "90")}
+      <div class="row"><button type="button" class="btn ghost sm" id="resetPerps" ${dis()}>Reset paper perps</button><span class="small muted">Saldo kembali ke modal paper, riwayat perps dihapus</span></div>
+      <p class="small muted">🔒 Tidak ada mode live untuk Hyperliquid di bot ini — hanya simulasi.</p>
+    </section>`;
+  }
+
   function provHtml(p, i, n) {
     const meta = PROVIDERS[p.name];
     return `<div class="prov" data-prov="${p.name}"><div class="row"><b>${i + 1}. ${meta.label}</b>
@@ -168,7 +201,7 @@
     root.querySelectorAll("[data-p]").forEach(i => {
       let v = i.type === "checkbox" ? i.checked : i.value;
       if (i.dataset.num) { v = parseFloat(String(v).replace(",", ".")); if (isNaN(v)) return; }
-      if (i.dataset.p === "risk.max_open_positions") v = parseInt(v, 10);
+      if (INT_PATHS.includes(i.dataset.p)) v = parseInt(v, 10);
       setP(c, i.dataset.p, v);
     });
     c.ai.providers = [...root.querySelectorAll("[data-prov]")].map(d => ({ name: d.dataset.prov,
@@ -179,7 +212,12 @@
       if (!isNaN(k) && !isNaN(v) && k >= 0) roi[String(k)] = v;
     });
     if (Object.keys(roi).length) c.risk.minimal_roi = roi;
-    c.version = 2;
+    const pairs = [...root.querySelectorAll("[data-pair]")].filter(i => i.checked).map(i => i.dataset.pair);
+    const ex = root.querySelector("#pairExtra");
+    if (ex) ex.value.split(/[\s,]+/).map(x => x.trim().toUpperCase()).filter(x => /^[A-Z0-9]{2,12}$/.test(x)).forEach(x => { if (!pairs.includes(x)) pairs.push(x); });
+    c.perps = c.perps || clone(DEFAULT_CFG.perps);
+    if (pairs.length) c.perps.pairs = pairs.slice(0, 8);
+    c.version = 3;
     return c;
   }
   const getDefaultModel = n => (DEFAULT_CFG.ai.providers.find(p => p.name === n) || {}).model;
@@ -196,7 +234,8 @@
     try {
       const c = collect();
       const fresh = await GH.readConfig().catch(() => null);
-      if (fresh) { c.mode = fresh.cfg.mode || "paper"; c.close_position_request = fresh.cfg.close_position_request || ""; c.live_exit_request = fresh.cfg.live_exit_request || ""; }
+      if (fresh) { c.mode = fresh.cfg.mode || "paper"; c.close_position_request = fresh.cfg.close_position_request || ""; c.live_exit_request = fresh.cfg.live_exit_request || "";
+        c.perps.reset_request = (fresh.cfg.perps && fresh.cfg.perps.reset_request) || ""; }
       await writeCfg(c, "chore: update bot config from app");
       render();
     } catch (e) { SB.toast("Gagal menyimpan: " + e.message, 6000); }
@@ -324,6 +363,20 @@
     const xi = q('[data-p="ai.extra_instruction"]'), xc = q("#xiCount");
     const cnt = () => { xc.textContent = `${xi.value.length}/500`; }; xi.addEventListener("input", cnt); cnt();
     const sv = q("#saveCfg"); if (sv) sv.addEventListener("click", save);
+    const rpb = q("#resetPerps"); if (rpb) rpb.addEventListener("click", () => {
+      const m = SB.modal(`<h3>Reset paper perps?</h3><p class="small">Semua posisi & riwayat paper Hyperliquid dihapus, saldo kembali ke modal paper. Indodax tidak terpengaruh.</p>
+        <div class="mbtns"><button type="button" class="btn ghost" id="rCancel">Batal</button><button type="button" class="btn danger" id="rOk">Reset</button></div>`);
+      m.el.querySelector("#rCancel").addEventListener("click", m.close);
+      m.el.querySelector("#rOk").addEventListener("click", async () => {
+        m.close();
+        try {
+          const fresh = await GH.readConfig();
+          const c = merge(DEFAULT_CFG, fresh.cfg); c.perps.reset_request = "reset-" + Date.now();
+          await writeCfg(c, "chore: reset paper perps from app", "Reset dikirim, bot dijalankan…");
+          GH.runAndWatch("bot.yml", { force: "true" }, document.getElementById("botRun"), "Bot").then(() => SB.reload());
+        } catch (e) { SB.toast("Gagal: " + e.message, 6000); }
+      });
+    });
     const gl = q("#goLive"); if (gl) gl.addEventListener("click", goLive);
     const sl = q("#stopLive2"); if (sl) sl.addEventListener("click", stopLive);
     const ta = q("#testAi"); if (ta) ta.addEventListener("click", () => GH.runAndWatch("ai-check.yml", {}, q("#aiRun"), "Tes AI").catch(e => { q("#aiRun").hidden = false; q("#aiRun").textContent = "Gagal: " + e.message; }));

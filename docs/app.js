@@ -47,7 +47,7 @@ function show(v) {
 SB.show = show;
 for (const b of document.querySelectorAll("#bnav button")) b.addEventListener("click", () => show(b.dataset.v));
 $("gear").addEventListener("click", () => show("settings"));
-const HASHES = { pengaturan: "settings", settings: "settings", trade: "trades", trades: "trades", backtest: "backtest", notif: "notif" };
+const HASHES = { pengaturan: "settings", settings: "settings", trade: "trades", trades: "trades", backtest: "backtest", notif: "notif", agen: "agents", agents: "agents" };
 
 /* ---------------- helpers on the v2 state ---------------- */
 function book(s) {

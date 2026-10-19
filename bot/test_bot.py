@@ -53,7 +53,7 @@ A.ticker = lambda: price["v"]
 bars = [dict(t=1_700_000_000 + i * 86400, o=100.0, h=101.0, l=99.0, c=100.0 + i * 0.5) for i in range(320)]
 A.fetch_bars = lambda tf, n=None, days=None, closed_only=True: bars
 def write_cfg(**kw):
-    c = json.loads(json.dumps(C.DEFAULTS)); c.update(kw); json.dump(c, open(os.environ["BOT_CONFIG"], "w"))
+    c = json.loads(json.dumps(C.DEFAULTS)); c["venue"] = "indodax"; c.update(kw); json.dump(c, open(os.environ["BOT_CONFIG"], "w"))
 write_cfg(mode="live")
 A.tick(force=True)
 s = json.load(open(os.environ["STATE_FILE"]))

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f19">
-<meta name="description" content="Bot trading SOL/IDR (Indodax): dashboard, grafik live, trade, backtest dan pengaturan.">
+<meta name="description" content="Bot trading SOL/IDR (Indodax) + multi-agen Hyperliquid perps (paper): dashboard, agen, trade, backtest dan pengaturan.">
 <title>SOL AI Bot</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -20,10 +20,11 @@
 <script src="github.js" defer></script>
 <script src="notify.js" defer></script>
 <script src="settings.js" defer></script>
+<script src="agents.js" defer></script>
 </head>
 <body>
 <header class="top">
-  <div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div><h1>SOL AI Bot</h1><small>SOL/IDR · Indodax</small></div></div>
+  <div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div><h1>SOL AI Bot</h1><small>Indodax spot · Hyperliquid perps (paper)</small></div></div>
   <div class="acts">
     <span id="mode" class="badge">…</span>
     <button id="refresh" class="iconbtn" type="button" aria-label="Muat ulang">⟳</button>
@@ -75,6 +76,7 @@
       <div class="card w hd"><div class="label">💎 Hold</div><div id="eqHd" class="mid">—</div><div id="pcHd" class="pc">—</div><div class="muted small">100% SOL</div></div>
     </section>
     <p class="muted small center" id="startNote">Modal awal tiap dompet: Rp1.000.000 (simulasi)</p>
+    <section class="card" id="agMini" hidden></section>
 
     <section class="card decision">
       <div class="row"><div class="label">Keputusan terakhir</div><span id="decDate" class="muted small"></span></div>
@@ -106,6 +108,11 @@
       Bot dicek otomatis tiap ±15 menit lewat GitHub Actions (jadwal GitHub bisa telat).
       <br><a id="apk" class="apk" hidden>📱 Unduh aplikasi Android (APK)</a>
     </footer>
+  </section>
+
+  <!-- ================= AGEN (multi-agent, Hyperliquid paper) ================= -->
+  <section id="v-agents" class="view" hidden>
+    <div id="agentsRoot"><section class="card"><p class="muted small">Memuat data agen…</p></section></div>
   </section>
 
   <!-- ================= TRADE ================= -->
@@ -149,6 +156,10 @@
       <div class="tbl" id="btCmp"></div>
     </section>
     <section class="card">
+      <div class="label">Backtest multi-agen · Hyperliquid perps</div>
+      <div id="btpBox"><p class="small muted">Memuat…</p></div>
+    </section>
+    <section class="card">
       <div class="label">Trade backtest (terakhir)</div>
       <ul id="btTrades" class="hist"><li class="muted">—</li></ul>
     </section>
@@ -171,6 +182,7 @@
 
 <nav class="bnav" id="bnav">
   <button data-v="home" class="on" type="button"><span>🏠</span>Beranda</button>
+  <button data-v="agents" type="button"><span>🤖</span>Agen</button>
   <button data-v="trades" type="button"><span>📒</span>Trade</button>
   <button data-v="backtest" type="button"><span>🧪</span>Backtest</button>
   <button data-v="notif" type="button"><span>🔔</span>Notif<i id="unread" hidden></i></button>

@@ -1,6 +1,7 @@
 {
-  "version": 2,
+  "version": 3,
   "enabled": true,
+  "venue": "both",
   "mode": "paper",
   "close_position_request": "",
   "live_exit_request": "",
@@ -63,5 +64,29 @@
   },
   "backtest": {
     "days": 365
+  },
+  "perps": {
+    "pairs": [
+      "SOL",
+      "BTC",
+      "ETH"
+    ],
+    "timeframe": "4h",
+    "paper_start_usd": 250,
+    "max_leverage": 3,
+    "risk_per_trade_pct": 1.0,
+    "max_positions": 2,
+    "stop_atr_mult": 2.0,
+    "take_profit_r": 2.0,
+    "breakeven_at_r": 1.0,
+    "liq_buffer_mult": 2.0,
+    "entry_threshold": 0.25,
+    "allow_short": true,
+    "use_llm": true,
+    "daily_loss_enabled": true,
+    "daily_max_loss_pct": 3,
+    "kill_switch_enabled": true,
+    "total_max_loss_pct": 15,
+    "reset_request": ""
   }
 }
