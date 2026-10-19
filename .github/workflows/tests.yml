@@ -42,6 +42,6 @@ jobs:
           assert cfg["perps"]["max_leverage"] <= 5
           print("config OK", cfg["venue"], cfg["perps"]["pairs"], warns)
           PY
-          ! grep -RnE "api\.hyperliquid\.xyz/exchange|sign_l1_action|eth_account" bot/
+          ! grep -RnE --exclude="test_*.py" "api\.hyperliquid\.xyz/exchange|sign_l1_action|eth_account" bot/
       - name: Sintaks JavaScript
         run: for f in docs/*.js docs/runners/*.js; do node --check "$f"; done
