@@ -312,8 +312,8 @@
  "config_warnings": [],
  "mode": "PAPER",
  "requested_mode": "PAPER",
- "price": 1892545.0,
- "price_at": "2026-10-19T13:33:29Z",
+ "price": 1887287.0,
+ "price_at": "2026-10-19T13:50:49Z",
  "status": "active",
  "summary": {
   "paper": {
@@ -1143,6 +1143,11 @@
     "t": 1792416809,
     "eq": 250.18,
     "hold": 251.2
+   },
+   {
+    "t": 1792417849,
+    "eq": 250.63,
+    "hold": 250.51
    }
   ],
   "hold": {
@@ -1222,9 +1227,9 @@
    ]
   },
   "last_check": {
-   "SOL": 1792416809,
-   "BTC": 1792416809,
-   "ETH": 1792416809
+   "SOL": 1792417849,
+   "BTC": 1792417849,
+   "ETH": 1792417849
   },
   "reset_done": "",
   "fng": {
@@ -1238,25 +1243,25 @@
    "ts": 1792416809
   },
   "prices": {
-   "BTC": 82428.5,
-   "ETH": 2417.9,
-   "SOL": 105.015
+   "BTC": 82302.5,
+   "ETH": 2408.75,
+   "SOL": 104.705
   },
-  "prices_at": "2026-10-19T13:33:29Z",
+  "prices_at": "2026-10-19T13:50:49Z",
   "summary": {
-   "equity": 250.18,
+   "equity": 250.63,
    "start": 250.0,
-   "pnl_usd": 0.18,
-   "pnl_pct": 0.07,
-   "hold_equity": 251.2,
+   "pnl_usd": 0.63,
+   "pnl_pct": 0.25,
+   "hold_equity": 250.51,
    "balance": 249.95,
    "used_margin": 132.8,
    "fees": 0.06,
    "funding": -0.01,
    "trades": 0,
    "open": 2,
-   "daily_loss_pct": -0.07,
-   "total_loss_pct": -0.07,
+   "daily_loss_pct": -0.25,
+   "total_loss_pct": -0.25,
    "kill": null,
    "daily_block": null,
    "per_pair": {
@@ -1264,14 +1269,14 @@
      "realized": 0.0,
      "trades": 0,
      "wins": 0,
-     "unrealized": -0.18,
+     "unrealized": 0.08,
      "win_rate": null
     },
     "SOL": {
      "realized": 0.0,
      "trades": 0,
      "wins": 0,
-     "unrealized": 0.42,
+     "unrealized": 0.6,
      "win_rate": null
     }
    }
