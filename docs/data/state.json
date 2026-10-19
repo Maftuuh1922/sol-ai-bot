@@ -200,8 +200,8 @@
  "config_warnings": [],
  "mode": "PAPER",
  "requested_mode": "PAPER",
- "price": 1869000.0,
- "price_at": "2026-10-19T00:10:40Z",
+ "price": 1870618.0,
+ "price_at": "2026-10-19T01:04:54Z",
  "status": "active",
  "summary": {
   "paper": {
@@ -262,7 +262,7 @@
   "mode": "PAPER",
   "book": {
    "start_usd": 250.0,
-   "balance": 249.968416318,
+   "balance": 249.96929625585375,
    "positions": {
     "ETH": {
      "id": "P1792368640-1",
@@ -281,7 +281,7 @@
      "r_dist": 83.23744045793819,
      "opened_at": 1792368640,
      "fees": 0.031583682,
-     "funding": 0.0,
+     "funding": -0.000879937853751581,
      "be_moved": false,
      "reason": "multi-agen -0.31"
     }
@@ -302,14 +302,14 @@
     }
    ],
    "fees_paid": 0.031583682,
-   "funding_paid": 0.0,
+   "funding_paid": -0.000879937853751581,
    "seq": 2,
    "day": "2026-10-19",
    "day_start_eq": 250.0,
    "daily_block": null,
    "loss_base": 250.0,
    "kill": null,
-   "last_funding_hour": 497880
+   "last_funding_hour": 497881
   },
   "last_candle": "2026-10-18T20:00Z|SOL,BTC,ETH",
   "latest": {
@@ -662,6 +662,11 @@
     "t": 1792368640,
     "eq": 249.95,
     "hold": 250.0
+   },
+   {
+    "t": 1792371894,
+    "eq": 249.76,
+    "hold": 250.77
    }
   ],
   "hold": {
@@ -677,25 +682,37 @@
     [
      1792368640,
      5458316.260000001
+    ],
+    [
+     1792371894,
+     5460162.1000000015
     ]
    ],
    "BTC": [
     [
      1792368640,
      39043.18268
+    ],
+    [
+     1792371894,
+     39300.5768799999
     ]
    ],
    "ETH": [
     [
      1792368640,
      1069236.3794
+    ],
+    [
+     1792371894,
+     1070319.2094000014
     ]
    ]
   },
   "last_check": {
-   "SOL": 1792368640,
-   "BTC": 1792368640,
-   "ETH": 1792368640
+   "SOL": 1792371894,
+   "BTC": 1792371894,
+   "ETH": 1792371894
   },
   "reset_done": "",
   "fng": {
@@ -709,25 +726,25 @@
    "ts": 1792368640
   },
   "prices": {
-   "BTC": 82156.5,
-   "ETH": 2411.65,
-   "SOL": 104.125
+   "BTC": 82399.5,
+   "ETH": 2418.35,
+   "SOL": 104.495
   },
-  "prices_at": "2026-10-19T00:10:40Z",
+  "prices_at": "2026-10-19T01:04:54Z",
   "summary": {
-   "equity": 249.95,
+   "equity": 249.76,
    "start": 250.0,
-   "pnl_usd": -0.05,
-   "pnl_pct": -0.02,
-   "hold_equity": 250.0,
+   "pnl_usd": -0.24,
+   "pnl_pct": -0.1,
+   "hold_equity": 250.77,
    "balance": 249.97,
    "used_margin": 70.19,
    "fees": 0.03,
-   "funding": 0.0,
+   "funding": -0.0,
    "trades": 0,
    "open": 1,
-   "daily_loss_pct": 0.02,
-   "total_loss_pct": 0.02,
+   "daily_loss_pct": 0.1,
+   "total_loss_pct": 0.1,
    "kill": null,
    "daily_block": null,
    "per_pair": {
@@ -735,7 +752,7 @@
      "realized": 0.0,
      "trades": 0,
      "wins": 0,
-     "unrealized": -0.01,
+     "unrealized": -0.21,
      "win_rate": null
     }
    }
