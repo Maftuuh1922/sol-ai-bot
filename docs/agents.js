@@ -125,7 +125,7 @@
           .map(d => Object.assign(d, { pointRadius: pts.length > 40 ? 0 : 2, borderWidth: 2, tension: .2, spanGaps: true })) },
       options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
         plugins: { legend: { labels: { color: "#c8d2e3", boxWidth: 12 } }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${usd(c.parsed.y)}` } } },
-        scales: { x: { ticks: { color: "#8b97ad", maxTicksLimit: 5 }, grid: { color: "#1b2336" } }, y: { ticks: { color: "#8b97ad", callback: v => "$" + v }, grid: { color: "#1b2336" } } } } });
+        scales: { x: { ticks: { color: "#8b97ad", maxTicksLimit: 5 }, grid: { color: "#1b2336" } }, y: { ticks: { color: "#8b97ad", callback: v => "$" + Number(v).toFixed(Math.abs(v) >= 1000 ? 0 : 2) }, grid: { color: "#1b2336" } } } } });
   }
 
   /* ---------- multi-agent backtest card (Backtest tab) ---------- */
@@ -157,7 +157,7 @@
                      { label: "Hold", data: pts.map(p => p.hold), borderColor: "#f5b942", backgroundColor: "#f5b942" }].map(d => Object.assign(d, { pointRadius: 0, borderWidth: 2, tension: .2 })) },
         options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
           plugins: { legend: { labels: { color: "#c8d2e3", boxWidth: 12 } } },
-          scales: { x: { ticks: { color: "#8b97ad", maxTicksLimit: 5 }, grid: { color: "#1b2336" } }, y: { ticks: { color: "#8b97ad", callback: v => "$" + v }, grid: { color: "#1b2336" } } } } });
+          scales: { x: { ticks: { color: "#8b97ad", maxTicksLimit: 5 }, grid: { color: "#1b2336" } }, y: { ticks: { color: "#8b97ad", callback: v => "$" + Number(v).toFixed(Math.abs(v) >= 1000 ? 0 : 2) }, grid: { color: "#1b2336" } } } } });
     };
     draw();
   }
