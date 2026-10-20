@@ -142,4 +142,18 @@ n_ord = len(st["books"]["paper"]["orders"])
 A.tick(force=True)
 st = json.load(open(os.environ["STATE_FILE"]))
 check(len(st["books"]["paper"]["orders"]) == n_ord, "hyperliquid-only leaves Indodax untouched")
+
+# --- perps kill switch: pause 14 days then resume with a new baseline ---
+kb = HL.new_book(250)
+PERPS.kill_start(kb, dict(P, kill_pause_days=14), 1000, 16.0)
+check(kb["kill"]["until_ts"] == 1000 + 14 * 86400, "perps pause until")
+check(not PERPS.kill_resume(kb, {}, 1000 + 14 * 86400 - 1) and kb["kill"], "perps still paused")
+kb["balance"] = 200.0
+check(PERPS.kill_resume(kb, {}, 1000 + 14 * 86400) and kb["kill"] is None and kb["loss_base"] == 200.0, "perps resume + baseline reset")
+check(HL.loss_state(kb, {})[1] == 0.0, "no instant re-trigger after resume")
+kb2 = HL.new_book(250); PERPS.kill_start(kb2, dict(P, kill_pause_days=0), 1000, 16.0)
+check(kb2["kill"]["until_ts"] is None and not PERPS.kill_resume(kb2, {}, 10**10), "perps pause 0 = until reset")
+check(C.DEFAULTS["perps"]["kill_pause_days"] == 14, "perps pause default")
+bv = PERPS.book_view({"book": dict(HL.new_book(250), kill={"at": 1, "until_ts": 2})}, {})
+check(AG.risk_agent("SOL", {"direction": "long", "score": 0.5}, {"close": 100, "atr": 2}, P, dict(bv, has_position=False))["veto"] == "Kill switch aktif", "veto while paused")
 print(f"OK: {ok} checks passed")

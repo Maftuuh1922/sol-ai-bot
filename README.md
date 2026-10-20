@@ -37,7 +37,11 @@ Di bawah "keyakinan minimum", bot memakai aturan strategi. Setelah keluar karena
 
 Stop-loss %, trailing stop (jarak + aktif setelah untung X%), tabel minimal ROI (menit → %), cooldown setelah trade rugi,
 maks posisi terbuka (satu pair: 0 atau 1), batas rugi harian (tutup posisi + tanpa entry sampai besok WIB) dan kill switch rugi total
-(tutup posisi, `enabled=false`, `mode=paper`). Di mode LIVE, batas harian juga mematikan bot dan kembali ke PAPER. Semua bisa ON/OFF dari aplikasi.
+(tutup posisi). Di PAPER kill switch total = **jeda** `risk.kill_pause_days` hari (default 14) tanpa entry baru, lalu bot lanjut otomatis
+dengan baseline rugi total dihitung ulang dari ekuitas saat lanjut (0 = perilaku lama: `enabled=false`). Di mode LIVE kill switch tetap
+mematikan bot dan kembali ke PAPER, begitu juga batas harian. **Filter tren** `strategy.trend_filter_ma` (default 200): entry long baru
+hanya saat close harian terakhir yang sudah tutup > SMA200 harian (0 = mati); exit tidak terpengaruh. Hyperliquid perps (paper) memakai
+jeda yang sama lewat `perps.kill_pause_days`. Semua bisa ON/OFF dari aplikasi.
 
 ### Backtest
 

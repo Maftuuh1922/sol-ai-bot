@@ -41,7 +41,9 @@
     const tf = (SB.cfg && SB.cfg.perps && SB.cfg.perps.timeframe) || "4h";
     const last = Object.values(ps.latest || {}).reduce((a, d) => Math.max(a, d.ts || 0), 0);
     const notes = [];
-    if (sm.kill) notes.push(`⛔ Kill switch perps (${SB.wib(sm.kill.at)}, rugi ${sm.kill.loss_pct}%). Tidak ada entry baru — reset paper perps di Pengaturan.`);
+    if (sm.kill) notes.push(sm.kill.until
+      ? `⏸ Kill switch perps (${SB.wib(sm.kill.at)}, rugi ${sm.kill.loss_pct}%). Jeda tanpa entry baru sampai ${SB.wib(sm.kill.until)}, lalu lanjut otomatis.`
+      : `⛔ Kill switch perps (${SB.wib(sm.kill.at)}, rugi ${sm.kill.loss_pct}%). Tidak ada entry baru — reset paper perps di Pengaturan.`);
     if (sm.daily_block) notes.push(`⏸ Batas rugi harian tercapai (${sm.daily_block}). Entry baru lagi besok (WIB).`);
     const vsHold = sm.hold_equity ? sm.equity - sm.hold_equity : null;
     let html = `
@@ -139,7 +141,7 @@
     const kv = [["Return multi-agen", pct(st.return_pct)], ["Return Hold rata²", pct(st.hold_return_pct)], ["Max drawdown", pct(st.max_drawdown_pct)],
       ["Drawdown Hold", pct(st.hold_max_drawdown_pct)], ["Jumlah trade", st.trades], ["Win rate", st.win_rate_pct != null ? st.win_rate_pct + "%" : "—"],
       ["Rata-rata R", st.avg_r ?? "—"], ["Profit factor", st.profit_factor ?? "—"], ["Ekuitas akhir", usd(st.final_equity)], ["Fee / funding", `${usd(st.fees_usd)} / ${usd(-st.funding_usd)}`],
-      ["Kill switch", st.killed_on ? "kena " + st.killed_on : "tidak"]];
+      ["Kill switch", SB.killTxt ? SB.killTxt(st) : (st.killed_on ? "kena " + st.killed_on : "tidak")]];
     const per = bt.per_pair || {};
     box.innerHTML = `<p class="small muted">${esc(bt.pairs.join(", "))} · ${esc(bt.timeframe)} · ${bt.days} hari · ${esc(bt.mode)} · modal ${usd(bt.start_usd)} · dibuat ${SB.wib(bt.generated_at)}</p>
       <div class="kv">${kv.map(r => `<div><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join("")}</div>

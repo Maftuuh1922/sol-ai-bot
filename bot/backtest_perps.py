@@ -58,7 +58,8 @@ def simulate(data, P, days, fng):
     fng_t = [t for t, _ in fng]
     ps = {"book": HL.new_book(P["paper_start_usd"])}
     b = ps["book"]
-    curve, decisions, vetoes, hold0, killed = [], {"long": 0, "short": 0, "flat": 0}, {}, None, None
+    curve, decisions, vetoes, hold0, kills = [], {"long": 0, "short": 0, "flat": 0}, {}, None, []
+    day = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
     for t in times:
         close_ts = t + step
         if close_ts < start_ts: continue
@@ -76,11 +77,12 @@ def simulate(data, P, days, fng):
             for _, rate in data[c]["funding"][lo:hi]: HL.apply_funding(b, c, rate, prices[c], 1.0)
         # loss limits
         HL.roll_day(b, datetime.fromtimestamp(close_ts, WIB).strftime("%Y-%m-%d"), prices)
+        if PERPS.kill_resume(b, prices, close_ts) and kills: kills[-1]["resume"] = day(close_ts)
         dl, tl = HL.loss_state(b, prices)
         if not b.get("kill") and P["kill_switch_enabled"] and tl >= P["total_max_loss_pct"]:
             for c in list(b["positions"]): HL.close_position(b, c, prices[c], close_ts, "kill_total")
-            b["kill"] = {"at": close_ts, "loss_pct": tl}
-            killed = datetime.fromtimestamp(close_ts, timezone.utc).strftime("%Y-%m-%d")
+            PERPS.kill_start(b, P, close_ts, tl)
+            kills.append({"on": day(close_ts), "loss_pct": tl, "resume": None})
         elif P["daily_loss_enabled"] and dl >= P["daily_max_loss_pct"] and not b.get("daily_block"):
             for c in list(b["positions"]): HL.close_position(b, c, prices[c], close_ts, "kill_daily")
             b["daily_block"] = b["day"]
@@ -105,7 +107,7 @@ def simulate(data, P, days, fng):
                     vetoes[key] = vetoes.get(key, 0) + 1
         hold = P["paper_start_usd"] * (1 - HL.TAKER_FEE) * sum(prices[c] / hold0[c] for c in coins) / len(coins)
         curve.append((close_ts, HL.equity(b, prices), hold))
-    return b, curve, decisions, vetoes, killed, hold0, prices
+    return b, curve, decisions, vetoes, kills, hold0, prices
 
 
 def dd(series):
@@ -130,7 +132,7 @@ def main():
         if cache: json.dump(data, open(cache, "w"))
     if not data: sys.exit("tidak ada data Hyperliquid untuk pair yang dipilih")
     fng = fng_history()
-    b, curve, decisions, vetoes, killed, hold0, last_px = simulate(data, P, days, fng)
+    b, curve, decisions, vetoes, kills, hold0, last_px = simulate(data, P, days, fng)
     start = P["paper_start_usd"]
     eq = [c[1] for c in curve]; hold = [c[2] for c in curve]
     tr = b["trades"]; wins = [t for t in tr if t["pnl_usd"] > 0]
@@ -151,7 +153,8 @@ def main():
           "avg_r": round(sum(t["r_multiple"] or 0 for t in tr) / len(tr), 2) if tr else None,
           "profit_factor": round(gp / gl, 2) if gl > 0 else None, "final_equity": round(eq[-1], 2),
           "fees_usd": round(b["fees_paid"], 2), "funding_usd": round(b["funding_paid"], 2),
-          "exit_reasons": reasons, "killed_on": killed, "open_positions": len(b["positions"])}
+          "exit_reasons": reasons, "killed_on": kills[0]["on"] if kills else None, "kill_events": kills,
+          "open_positions": len(b["positions"])}
     step = max(1, len(curve) // 300)
     pts = curve[::step] + ([curve[-1]] if (len(curve) - 1) % step else [])
     out = {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "venue": "hyperliquid", "mode": "rule (tanpa LLM)",
@@ -159,11 +162,11 @@ def main():
            "coordinator": decisions, "risk_vetoes": dict(sorted(vetoes.items(), key=lambda kv: -kv[1])),
            "settings": {k: P[k] for k in ("max_leverage", "risk_per_trade_pct", "max_positions", "stop_atr_mult", "take_profit_r",
                                            "breakeven_at_r", "liq_buffer_mult", "entry_threshold", "allow_short",
-                                           "daily_max_loss_pct", "total_max_loss_pct")},
+                                           "daily_max_loss_pct", "total_max_loss_pct", "kill_pause_days")},
            "equity": [{"t": c[0], "bot": round(c[1], 2), "hold": round(c[2], 2)} for c in pts],
            "trades": tr[-100:], "config_warnings": warns, "fear_greed_points": len(fng),
            "funding_points": {c: len(d["funding"]) for c, d in data.items()},
-           "note": "Mode aturan (tanpa LLM). Fee taker 0,045% + slippage 0,02%, funding per jam dari Hyperliquid. Orderbook & perubahan OI tidak punya data historis → agen likuiditas pakai volume saja, agen funding pakai funding saja. Hold = rata-rata beli & tahan semua pair (1x). Hasil masa lalu bukan jaminan.",
+           "note": "Mode aturan (tanpa LLM). Fee taker 0,045% + slippage 0,02%, funding per jam dari Hyperliquid. Orderbook & perubahan OI tidak punya data historis → agen likuiditas pakai volume saja, agen funding pakai funding saja. Hold = rata-rata beli & tahan semua pair (1x). Kill switch total = jeda kill_pause_days hari lalu lanjut. Hasil masa lalu bukan jaminan.",
            "runtime_s": round(time.time() - t0, 1)}
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w") as f: json.dump(out, f, indent=1, ensure_ascii=False)

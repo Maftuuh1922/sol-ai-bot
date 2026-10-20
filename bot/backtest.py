@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config import load_config                                     # noqa: E402
 import engine as E                                                 # noqa: E402
-from strategies import want_series, supertrend, TF_MINUTES, STRATEGY_INFO, WARMUP  # noqa: E402
+from strategies import want_series, supertrend, trend_filter, TF_MINUTES, STRATEGY_INFO, WARMUP  # noqa: E402
 import aibot as A                                                  # noqa: E402
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "data", "backtest.json")
@@ -35,40 +35,50 @@ def daily_guards(daily):
 
 
 def simulate(bars, daily, strategy, cfg, start_ts):
+    """Returns (book, curve, kills). kills = [{"on": date, "loss_pct", "resume": date|None}] for the total kill switch.
+    Total kill: positions closed, no new entries for risk.kill_pause_days, then trading resumes with the
+    total-loss baseline reset to the equity at resume (kill_pause_days = 0 -> stopped for good, old behaviour).
+    strategy.trend_filter_ma: new entries only while the last closed daily candle is above its SMA(N)."""
     R = cfg["risk"]
     tf_sec = TF_MINUTES[cfg["strategy"]["timeframe"]] * 60
     want = want_series(strategy, bars)
+    trend = trend_filter(bars, daily, cfg["strategy"].get("trend_filter_ma", 0), tf_sec)
     guards = daily_guards(daily); gkeys = sorted(guards)
     b = E.new_book(cfg["paper"]["start_idr"])
-    curve, killed, gi, g = [], None, 0, {"_vol": 0.6, "_datr_pct": None}
+    curve, kills, stopped, gi, g = [], [], False, 0, {"_vol": 0.6, "_datr_pct": None}
+    blocked_trend = 0
     first = next(i for i, x in enumerate(bars) if x["t"] >= start_ts)
     hold_sol = None
+    day = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
     for i in range(max(first, 30), len(bars)):
         bar = bars[i]; ts = bar["t"] + tf_sec; px = bar["c"]
         while gi < len(gkeys) and gkeys[gi] <= ts: g = guards[gkeys[gi]]; gi += 1
         if hold_sol is None: hold_sol = cfg["paper"]["start_idr"] * (1 - E.BUY_FEE) / bar["o"]
         E.roll_day(b, datetime.fromtimestamp(ts, WIB).strftime("%Y-%m-%d"), bar["o"])
-        if not killed:
+        if E.maybe_resume(b, ts, bar["o"]) and kills: kills[-1]["resume"] = day(ts)
+        if not stopped:
             hit = E.risk_exit(b, R, ts, px, bar["l"], bar["h"])
             if hit:
                 E.close_all(b, hit[1], ts, hit[0], R); b["reentry_block"] = True
-            lc = E.loss_check(b, R, px)
+            lc = E.loss_check(b, R, px, ts)
             if lc:
                 E.close_all(b, px, ts, "kill_" + lc[0], R)
                 if lc[0] == "daily": b["daily_block"] = b["day"]
-                else: killed = datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d")
-        if not killed:
+                else:
+                    kills.append({"on": day(ts), "loss_pct": lc[1], "resume": None})
+                    if not E.start_pause(b, R, ts): stopped = True
+        if not stopped:
             w = want[i]
             if w == 0: b["reentry_block"] = False
             cur = E.exposure(b, px)
             target = float(w) if (w == 0 or not b["position"]) else cur
             final = min(target, E.caps(R, g))
             if final > 0 and cur < 0.0005 and E.entry_blocked(b, R, ts): final = 0.0
+            if final > 0 and cur < 0.0005 and not trend[i]: final = 0.0; blocked_trend += 1
             E.rebalance_to(b, final, px, ts, "signal", R)
         curve.append((ts, E.equity(b, px), hold_sol * px))
-    if b["position"]:  # mark open position at the last close (not sold)
-        pass
-    return b, curve, killed
+    b["_blocked_trend_bars"] = blocked_trend
+    return b, curve, kills
 
 
 def stats(b, curve, start):
@@ -90,7 +100,8 @@ def stats(b, curve, start):
             "best_trade_pct": max((t["pnl_pct"] for t in tr), default=None),
             "worst_trade_pct": min((t["pnl_pct"] for t in tr), default=None),
             "profit_factor": round(gp / gl, 2) if gl > 0 else None,
-            "final_equity": round(eq[-1]), "exit_reasons": reasons, "open_position": bool(b["position"])}
+            "final_equity": round(eq[-1]), "exit_reasons": reasons, "open_position": bool(b["position"]),
+            "trend_blocked_bars": b.get("_blocked_trend_bars", 0)}
 
 
 def main():
@@ -100,16 +111,18 @@ def main():
     cfg, warns, _ = load_config()
     days = max(30, min(365, a.days or cfg["backtest"]["days"]))
     tf = cfg["strategy"]["timeframe"]; m = TF_MINUTES[tf]
-    warm_days = math.ceil(WARMUP * m / 1440) + 2
+    ma = cfg["strategy"].get("trend_filter_ma", 0)
+    warm_days = max(math.ceil(WARMUP * m / 1440) + 2, ma + 15)     # SMA(ma) needs ma daily closes before day 1
     t0 = time.time()
     bars = A.fetch_bars(tf, days=days + warm_days)
-    daily = bars if tf == "1d" else A.fetch_bars("1d", days=days + 45)
+    daily = bars if tf == "1d" else A.fetch_bars("1d", days=days + max(45, ma + 15))
     start_ts = int(time.time()) - days * 86400
     start = cfg["paper"]["start_idr"]
     results, main_res = {}, None
     for strat in ("ai_supertrend", "ema_rsi", "bollinger"):
-        b, curve, killed = simulate(bars, daily, strat, cfg, start_ts)
-        st = stats(b, curve, start); st["killed_on"] = killed
+        b, curve, kills = simulate(bars, daily, strat, cfg, start_ts)
+        st = stats(b, curve, start)
+        st["killed_on"] = kills[0]["on"] if kills else None; st["kill_events"] = kills
         results[strat] = st
         if strat == cfg["strategy"]["name"]:
             step = max(1, len(curve) // 300)
@@ -118,8 +131,11 @@ def main():
                         "trades": b["trades"][-100:]}
     out = {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "days": days, "timeframe": tf,
            "bars": len(bars), "strategy": cfg["strategy"]["name"], "strategy_desc": STRATEGY_INFO[cfg["strategy"]["name"]],
-           "start_idr": start, "risk": cfg["risk"], "config_warnings": warns,
-           "note": "AI tidak disimulasikan; untuk ai_supertrend dipakai aturan Supertrend (cadangan bot). Fee Indodax dihitung. Hasil masa lalu bukan jaminan.",
+           "start_idr": start, "risk": cfg["risk"], "trend_filter_ma": ma, "config_warnings": warns,
+           "note": "AI tidak disimulasikan; untuk ai_supertrend dipakai aturan Supertrend (cadangan bot). Fee Indodax dihitung. "
+                   + (f"Filter tren: entry baru hanya saat close harian > SMA{ma}. " if ma else "")
+                   + (f"Kill switch total = jeda {cfg['risk'].get('kill_pause_days')} hari lalu lanjut. " if cfg["risk"].get("kill_pause_days") else "")
+                   + "Hasil masa lalu bukan jaminan.",
            **main_res, "compare": results, "runtime_s": round(time.time() - t0, 1)}
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w") as f: json.dump(out, f, indent=1, ensure_ascii=False)

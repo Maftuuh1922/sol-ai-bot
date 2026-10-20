@@ -9,19 +9,19 @@
                       arcee: { label: "Arcee", models: "https://api.arcee.ai/api/v1/models", secret: "ARCEE_API_KEY" } };
   const DEFAULT_CFG = {
     version: 3, enabled: true, venue: "both", mode: "paper", close_position_request: "", live_exit_request: "",
-    strategy: { name: "ai_supertrend", timeframe: "1d" },
+    strategy: { name: "ai_supertrend", timeframe: "1d", trend_filter_ma: 200 },
     ai: { enabled: true, providers: [{ name: "nafnaf", enabled: true, model: "qwen3.8-flash-next" }, { name: "gonka", enabled: true, model: "zai-org/GLM-5.3-Flash" }, { name: "arcee", enabled: true, model: "deepseek/deepseek-v4-flash-latest" }],
           temperature: 0.2, min_confidence: "low", extra_instruction: "" },
     risk: { max_exposure_pct: 100, vol_target_pct: 60, atr_guard_pct: 0, stoploss_enabled: true, stoploss_pct: 10, trailing_enabled: false, trailing_pct: 5,
             trailing_activate_pct: 3, roi_enabled: false, minimal_roi: { "0": 20, "1440": 10, "4320": 5 }, cooldown_enabled: true, cooldown_minutes: 1440,
-            max_open_positions: 1, daily_loss_enabled: true, daily_max_loss_pct: 5, total_loss_enabled: true, total_max_loss_pct: 25 },
+            max_open_positions: 1, daily_loss_enabled: true, daily_max_loss_pct: 5, total_loss_enabled: true, total_max_loss_pct: 25, kill_pause_days: 14 },
     paper: { start_idr: 1000000 }, live: { max_capital_idr: 500000, max_order_idr: 250000 }, backtest: { days: 365 },
     perps: { pairs: ["SOL", "BTC", "ETH"], timeframe: "4h", paper_start_usd: 250, max_leverage: 3, risk_per_trade_pct: 1, max_positions: 2,
              stop_atr_mult: 2, take_profit_r: 2, breakeven_at_r: 1, liq_buffer_mult: 2, entry_threshold: 0.25, allow_short: true, use_llm: true,
-             daily_loss_enabled: true, daily_max_loss_pct: 3, kill_switch_enabled: true, total_max_loss_pct: 15, reset_request: "" },
+             daily_loss_enabled: true, daily_max_loss_pct: 3, kill_switch_enabled: true, total_max_loss_pct: 15, kill_pause_days: 14, reset_request: "" },
   };
   const BASE_PAIRS = ["SOL", "BTC", "ETH"];
-  const INT_PATHS = ["risk.max_open_positions", "perps.max_leverage", "perps.max_positions"];
+  const INT_PATHS = ["risk.max_open_positions", "perps.max_leverage", "perps.max_positions", "strategy.trend_filter_ma", "risk.kill_pause_days", "perps.kill_pause_days"];
   const root = document.getElementById("settingsRoot");
   let secrets = new Set(), models = {}, loadedOnce = false, ghUser = null;
   const esc = SB.esc;
@@ -71,6 +71,7 @@
       ${sw("enabled", "Bot aktif", "OFF = jadwal tetap jalan tapi bot tidak trading")}
       ${sel("strategy.name", "Strategi", [["ai_supertrend", "AI + Supertrend"], ["ema_rsi", "EMA cross + RSI"], ["bollinger", "Bollinger + RSI"]])}
       ${sel("strategy.timeframe", "Timeframe evaluasi", [["15m", "15 menit"], ["1h", "1 jam"], ["4h", "4 jam"], ["1d", "1 hari"]], "Bot dicek tiap ±15 mnt (jadwal GitHub bisa telat 5–30 mnt); strategi dievaluasi saat candle ini tutup. Stop/trailing dicek tiap pengecekan.")}
+      ${nm("strategy.trend_filter_ma", "Filter tren SMA harian", "hari", "Entry baru hanya saat close harian di atas SMA N hari. 0 = mati. Exit tidak terpengaruh.", "10", "0", "400")}
       ${nm("paper.start_idr", "Modal awal paper", "Rp", "Mengubahnya mereset dompet simulasi (jika belum ada trade)", "100000", "100000")}
       ${nm("backtest.days", "Periode backtest", "hari", "", "1", "30", "365")}
     </section>
@@ -101,7 +102,8 @@
       ${sw("risk.cooldown_enabled", "Cooldown setelah rugi")}${nm("risk.cooldown_minutes", "Lama cooldown", "mnt", "", "15", "0", "10080")}
       ${sel("risk.max_open_positions", "Maks posisi terbuka", [["1", "1 (normal)"], ["0", "0 (tidak buka posisi baru)"]], "Satu pair (SOL/IDR), jadi maksimal 1")}
       ${sw("risk.daily_loss_enabled", "Batas rugi harian")}${nm("risk.daily_max_loss_pct", "Rugi harian maks", "%", "Kena → posisi ditutup, tak ada entry sampai besok (LIVE: bot mati + PAPER)", "0.5", "0.5", "50")}
-      ${sw("risk.total_loss_enabled", "Kill switch rugi total")}${nm("risk.total_max_loss_pct", "Rugi total maks", "%", "Kena → posisi ditutup, bot dimatikan, mode PAPER", "1", "1", "90")}
+      ${sw("risk.total_loss_enabled", "Kill switch rugi total")}${nm("risk.total_max_loss_pct", "Rugi total maks", "%", "Kena → posisi ditutup. PAPER: jeda lalu lanjut. LIVE: bot dimatikan, mode PAPER", "1", "1", "90")}
+      ${nm("risk.kill_pause_days", "Jeda setelah kill switch (PAPER)", "hari", "Tanpa entry baru selama N hari, lalu lanjut dengan batas rugi dihitung ulang. 0 = bot dimatikan", "1", "0", "365")}
       <p class="small muted">Rem pengaman yang selalu aktif: batas volatilitas, spot tanpa leverage, rebalance min 10%, cadangan Supertrend jika AI gagal.</p>
     </section>
 
@@ -151,7 +153,8 @@
       ${sw("perps.allow_short", "Boleh short")}
       ${sw("perps.use_llm", "AI untuk 6 agen analis", "Satu panggilan AI per evaluasi untuk semua pair; gagal → aturan. Agen risiko selalu kode.")}
       ${sw("perps.daily_loss_enabled", "Batas rugi harian perps")}${nm("perps.daily_max_loss_pct", "Rugi harian maks", "%", "", "0.5", "0.5", "50")}
-      ${sw("perps.kill_switch_enabled", "Kill switch perps")}${nm("perps.total_max_loss_pct", "Rugi total maks", "%", "Kena → semua posisi paper ditutup, tanpa entry baru sampai reset", "1", "1", "90")}
+      ${sw("perps.kill_switch_enabled", "Kill switch perps")}${nm("perps.total_max_loss_pct", "Rugi total maks", "%", "Kena → semua posisi paper ditutup, lalu jeda", "1", "1", "90")}
+      ${nm("perps.kill_pause_days", "Jeda setelah kill switch", "hari", "Tanpa entry baru N hari, lalu lanjut dengan batas rugi dihitung ulang. 0 = sampai reset", "1", "0", "365")}
       <div class="row"><button type="button" class="btn ghost sm" id="resetPerps" ${dis()}>Reset paper perps</button><span class="small muted">Saldo kembali ke modal paper, riwayat perps dihapus</span></div>
       <p class="small muted">🔒 Tidak ada mode live untuk Hyperliquid di bot ini — hanya simulasi.</p>
     </section>`;
