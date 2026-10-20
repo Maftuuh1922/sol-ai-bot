@@ -68,8 +68,10 @@ function renderHome(s, px) {
   $("mode").textContent = mode; $("mode").className = "badge " + mode.toLowerCase();
   $("liveBar").hidden = mode !== "LIVE";
   const kill = s.kill && s.kill.active;
-  $("killNote").hidden = !kill;
+  const pause = !kill && s.pause && s.pause.active;
+  $("killNote").hidden = !kill && !pause;
   if (kill) $("killNote").textContent = `⛔ Kill switch ${wib(s.kill.at)}: rugi ${s.kill.loss_pct}% (${s.kill.kind === "daily" ? "harian" : "total"}). Bot dimatikan & kembali ke PAPER. Nyalakan lagi lewat tombol Bot aktif.`;
+  else if (pause) $("killNote").textContent = `⏸ Kill switch ${wib(s.pause.at)}: rugi total ${s.pause.loss_pct}%. Jeda ${s.pause.days} hari tanpa entry baru sampai ${wib(s.pause.until)}, lalu bot lanjut otomatis.`;
   const refused = (s.requested_mode || "") === "LIVE" && mode !== "LIVE";
   $("liveRefused").hidden = !refused;
   if (refused) {
@@ -223,6 +225,12 @@ function renderTrades(s, px) {
 }
 
 /* ---------------- render: backtest ---------------- */
+function killTxt(st) {
+  const ev = st.kill_events || [];
+  if (!ev.length) return st.killed_on ? "kena " + st.killed_on : "tidak";
+  return ev.map(k => k.on + (k.resume ? " → lanjut " + k.resume : " (masih jeda)")).join("; ");
+}
+SB.killTxt = killTxt;
 let btChart;
 function renderBacktest(bt) {
   if (!bt || !bt.stats) return;
@@ -231,7 +239,7 @@ function renderBacktest(bt) {
   const kv = [["Return bot", pct(st.return_pct)], ["Return Hold", pct(st.hold_return_pct)], ["Max drawdown", pct(st.max_drawdown_pct)],
     ["Drawdown Hold", pct(st.hold_max_drawdown_pct)], ["Jumlah trade", st.trades], ["Win rate", st.win_rate_pct != null ? st.win_rate_pct + "%" : "—"],
     ["Rata-rata trade", pct(st.avg_trade_pct)], ["Profit factor", st.profit_factor ?? "—"], ["Ekuitas akhir", rp(st.final_equity)],
-    ["Kill switch", st.killed_on ? "kena " + st.killed_on : "tidak"]];
+    ["Kill switch", killTxt(st)]];
   $("btKv").innerHTML = kv.map(r => `<div><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join("");
   const cmp = bt.compare || {};
   $("btCmp").innerHTML = `<table><tr><th>Strategi</th><th>Return</th><th>MDD</th><th>Trade</th><th>Win</th></tr>` +

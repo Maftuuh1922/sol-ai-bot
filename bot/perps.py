@@ -90,6 +90,24 @@ def decide_pairs(ps, P, feats, votes, prices, max_levs, ts, on_trade):
     return out
 
 
+def kill_start(b, P, ts, loss_pct, iso=None):
+    """Total kill switch: pause entries P.kill_pause_days (0 = until reset). Shared with the backtest."""
+    days = P.get("kill_pause_days", 0) or 0
+    until = int(ts + days * 86400) if days > 0 else None
+    b["kill"] = {"at": iso(ts) if iso else ts, "loss_pct": loss_pct, "until_ts": until,
+                 "until": (iso(until) if iso else until) if until else None}
+
+
+def kill_resume(b, prices, ts):
+    """Pause over -> clear the kill and restart the total-loss baseline at the equity now. True when it resumed."""
+    k = b.get("kill")
+    if k and k.get("until_ts") and ts >= k["until_ts"]:
+        b["kill"] = None
+        b["loss_base"] = HL.equity(b, prices)
+        return True
+    return False
+
+
 def tick(cfg, s, ts, force, ask_json, event, iso, get, close_request=False, enabled=True):
     P = cfg["perps"]
     ps = ensure(s, P)
@@ -166,12 +184,18 @@ def tick(cfg, s, ts, force, ask_json, event, iso, get, close_request=False, enab
     # daily window + loss limits / kill switch
     day = datetime.fromtimestamp(ts, WIB).strftime("%Y-%m-%d")
     HL.roll_day(b, day, prices)
+    if kill_resume(b, prices, ts):
+        event(s, "info", "Jeda kill switch perps selesai",
+              f"Agen boleh buka posisi lagi. Batas rugi total dihitung ulang dari ekuitas sekarang ({usd(HL.equity(b, prices))}).", "PAPER")
     dl, tl = HL.loss_state(b, prices)
     if P["kill_switch_enabled"] and tl >= P["total_max_loss_pct"] and not b.get("kill"):
         for c in list(b["positions"]): trade_ev("close", c, HL.close_position(b, c, prices[c], ts, "kill_total"))
-        b["kill"] = {"at": iso(ts), "loss_pct": tl}
+        kill_start(b, P, ts, tl, iso)
+        k = b["kill"]
         event(s, "kill", "KILL SWITCH perps", f"Rugi total {tl:.2f}% ≥ {P['total_max_loss_pct']}%. Semua posisi paper ditutup; "
-              "tidak ada entry baru sampai paper perps direset dari aplikasi.", "PAPER")
+              + (f"tidak ada entry baru selama {P['kill_pause_days']} hari (sampai {k['until']}), lalu lanjut otomatis "
+                 "dengan batas rugi total dari ekuitas saat itu." if k.get("until_ts")
+                 else "tidak ada entry baru sampai paper perps direset dari aplikasi."), "PAPER")
     elif P["daily_loss_enabled"] and dl >= P["daily_max_loss_pct"] and not b.get("daily_block"):
         for c in list(b["positions"]): trade_ev("close", c, HL.close_position(b, c, prices[c], ts, "kill_daily"))
         b["daily_block"] = day

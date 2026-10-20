@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config import load_config, save_config, CONFIG_PATH          # noqa: E402
 import engine as E                                                 # noqa: E402
 import perps as PERPS                                              # noqa: E402
-from strategies import (features, want_series, TF_MINUTES, TF_API, STRATEGY_INFO)  # noqa: E402
+from strategies import (features, want_series, trend_state, TF_MINUTES, TF_API, STRATEGY_INFO)  # noqa: E402
 
 PAIR_TV, PAIR_API = "SOLIDR", "sol_idr"
 PROVIDER_URLS = {
@@ -310,7 +310,7 @@ def effective_mode(cfg, file_ok, s):
     return "live", None
 
 
-def decide(cfg, s, book, bars, feat, px, ts):
+def decide(cfg, s, book, bars, feat, px, ts, daily=None):
     """Strategy -> AI filter/sizer -> guardrails. Returns a decision dict."""
     R, strat = cfg["risk"], cfg["strategy"]["name"]
     want = want_series(strat, bars)
@@ -364,6 +364,15 @@ def decide(cfg, s, book, bars, feat, px, ts):
     blocked = E.entry_blocked(book, R, ts) if final > 0 else None
     if blocked and cur < 0.0005:
         final = 0.0; d["blocked"] = blocked
+    # trend filter: a NEW long only when the last closed daily candle is above SMA(N); exits are never blocked
+    ma = cfg["strategy"].get("trend_filter_ma", 0)
+    if ma:
+        t_ok, dc, sv = trend_state(daily or bars, ma)
+        d["trend"] = {"ma": ma, "ok": t_ok, "close": dc, "sma": round(sv) if sv else None}
+        if final > 0 and cur < 0.0005 and not t_ok:
+            final = 0.0
+            d["blocked"] = (f"filter tren: close harian {rp(dc)} ≤ SMA{ma} {rp(sv)}" if sv
+                            else f"filter tren: data harian kurang dari {ma} candle")
     d.update(target=round(target, 3), cap=round(cap, 3), final=round(final, 3))
     return d
 
@@ -423,6 +432,12 @@ def tick_indodax(cfg, s, ts, force, file_ok, before):
     if book.get("loss_base") is None: book["loss_base"] = E.equity(book, px)
     s["price"] = px; s["price_at"] = iso(ts)
 
+    # total kill switch pause finished -> resume, total-loss baseline restarts at the equity now
+    if E.maybe_resume(book, ts, px):
+        if isinstance(s.get("pause"), dict): s["pause"].update(active=False, resumed_at=iso(ts))
+        event(s, "info", "Jeda kill switch selesai",
+              f"Bot trading lagi. Batas rugi total dihitung ulang dari ekuitas sekarang ({rp(E.equity(book, px))}).", mode)
+
     # daily summary + daily loss window (WIB day)
     prev = E.roll_day(book, wib_day(ts), px)
     if prev and prev[0]:
@@ -460,7 +475,7 @@ def tick_indodax(cfg, s, ts, force, file_ok, before):
         if json.loads(before).get("status") != "disabled":
             event(s, "info", "Bot dimatikan", "Jadwal tetap jalan tapi bot tidak trading. Posisi terbuka dipertahankan.", mode)
         return cfg_dirty
-    s["status"] = "active"
+    s["status"] = "paused" if E.paused(book, ts) else "active"
 
     # risk exits on the open position (every tick)
     hit = E.risk_exit(book, cfg["risk"], ts, px)
@@ -473,7 +488,7 @@ def tick_indodax(cfg, s, ts, force, file_ok, before):
                   f"Jual {o['sol']:.4f} SOL @ {rp(px)}" + (f", PnL {closed['pnl_pct']:+.2f}%" if closed else ""), mode)
 
     # loss limits / kill switch
-    lc = E.loss_check(book, cfg["risk"], px)
+    lc = E.loss_check(book, cfg["risk"], px, ts)
     if lc:
         kind, loss = lc
         o, closed = E.close_all(book, px, ts, f"kill switch ({'harian' if kind == 'daily' else 'total'})", cfg["risk"], execu)
@@ -481,6 +496,16 @@ def tick_indodax(cfg, s, ts, force, file_ok, before):
         if kind == "daily":
             book["daily_block"] = book["day"]
         msg = f"Rugi {loss:.2f}% (batas {'harian' if kind == 'daily' else 'total'}). Posisi ditutup."
+        # PAPER total kill: pause N days then resume (LIVE keeps the hard stop: bot off + back to PAPER)
+        if kind == "total" and mode == "paper" and E.start_pause(book, cfg["risk"], ts):
+            until = book["pause_until"]
+            s["pause"] = {"active": True, "at": iso(ts), "until": iso(until), "loss_pct": loss, "mode": mode.upper(),
+                          "days": cfg["risk"]["kill_pause_days"]}
+            event(s, "kill", "KILL SWITCH · jeda", msg + f" Tidak ada entry baru selama {cfg['risk']['kill_pause_days']} hari "
+                  f"(sampai {datetime.fromtimestamp(until, WIB).strftime('%Y-%m-%d %H:%M')} WIB), lalu bot lanjut otomatis "
+                  "dengan batas rugi total dihitung dari ekuitas saat itu.", mode)
+            s["status"] = "paused"
+            return cfg_dirty
         if kind == "total" or mode == "live":
             raw = _raw_config()
             raw["mode"] = "paper"; raw["enabled"] = False
@@ -513,11 +538,12 @@ def _raw_config():
 
 def evaluate(cfg, s, book, mode, execu, tf, ts, px_now):
     bars = fetch_bars(tf, 320)
-    daily = bars if tf == "1d" else fetch_bars("1d", 120)
+    ma = cfg["strategy"].get("trend_filter_ma", 0)
+    daily = bars if tf == "1d" and len(bars) >= ma + 5 else fetch_bars("1d", max(120, ma + 20))
     if len(bars) < 60: raise RuntimeError(f"candle {tf} terlalu sedikit ({len(bars)})")
     feat = features(bars, daily, tf)
     px = px_now
-    d = decide(cfg, s, book, bars, feat, px, ts)
+    d = decide(cfg, s, book, bars, feat, px, ts, daily)
     o, closed = E.rebalance_to(book, d["final"], px, ts, f"{d['strategy']} target {d['final']*100:.0f}%", cfg["risk"],
                                cfg["live"]["max_order_idr"] if mode == "live" else None, execu)
     order_event(s, o, mode, closed)
@@ -532,7 +558,7 @@ def evaluate(cfg, s, book, mode, execu, tf, ts, px_now):
              "signal": d["signal"], "ai_target": d["ai_target"], "target": d["target"], "cap": d["cap"], "final": d["final"],
              "confidence": d["confidence"], "reason": d["reason"], "provider": d["provider"],
              "provider_label": d["provider_label"], "action": act, "bench_action": bact, "supertrend": feat["supertrend"],
-             "blocked": d.get("blocked"), "error": d["error"], "mode": mode.upper(), "ran_at": iso(ts)}
+             "blocked": d.get("blocked"), "trend": d.get("trend"), "error": d["error"], "mode": mode.upper(), "ran_at": iso(ts)}
     s["log"].append(entry); del s["log"][:-MAX_LOG]
     pb = s["books"]["paper"]
     pt = {"t": ts, "date": feat["date"], "close": px, "ai": round(E.equity(pb, px)),

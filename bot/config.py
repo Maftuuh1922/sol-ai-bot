@@ -25,7 +25,8 @@ DEFAULTS = {
     "mode": "paper",                      # "paper" | "live"  (live also needs Indodax secrets + passes runtime guardrails)
     "close_position_request": "",         # app sets a new token -> bot closes the open position once
     "live_exit_request": "",              # app STOP + sell: bot sells the LIVE book once (even after mode -> paper)
-    "strategy": {"name": "ai_supertrend", "timeframe": "1d"},
+    "strategy": {"name": "ai_supertrend", "timeframe": "1d",
+                 "trend_filter_ma": 200},          # new longs only when daily close > SMA(N) of daily closes; 0 = off
     "ai": {
         "enabled": True,                  # AI filter/sizer on top of the strategy
         "providers": [
@@ -48,6 +49,7 @@ DEFAULTS = {
         "max_open_positions": 1,          # single pair (SOL/IDR): 0 = no new entries, 1 = normal
         "daily_loss_enabled": True, "daily_max_loss_pct": 5,
         "total_loss_enabled": True, "total_max_loss_pct": 25,
+        "kill_pause_days": 14,            # total kill switch (PAPER) pauses entries N days, then resumes with a new baseline; 0 = stop bot
     },
     "paper": {"start_idr": 1_000_000},
     "live": {"max_capital_idr": 500_000, "max_order_idr": 250_000},
@@ -69,6 +71,7 @@ DEFAULTS = {
         "use_llm": True,                  # LLM answers the 6 analysts in one batched call; rules otherwise
         "daily_loss_enabled": True, "daily_max_loss_pct": 3,
         "kill_switch_enabled": True, "total_max_loss_pct": 15,
+        "kill_pause_days": 14,            # kill switch pauses entries N days, then resumes with a new baseline; 0 = until reset
         "reset_request": "",              # app sets a new token -> paper perps book reset once
     },
 }
@@ -135,6 +138,7 @@ def validate(raw, env=None):
     elif "name" in st: warn.append("strategi tidak dikenal; pakai ai_supertrend")
     if st.get("timeframe") in TIMEFRAMES: cfg["strategy"]["timeframe"] = st["timeframe"]
     elif "timeframe" in st: warn.append("timeframe tidak dikenal; pakai 1d")
+    setn(cfg["strategy"], st, "trend_filter_ma", 0, 400, integer=True)
 
     ai = sub(raw, "ai")
     setb(cfg["ai"], ai, "enabled")
@@ -168,6 +172,7 @@ def validate(raw, env=None):
     setn(R, r, "max_open_positions", 0, 1, integer=True)
     setn(R, r, "daily_max_loss_pct", 0.5, 50)
     setn(R, r, "total_max_loss_pct", 1, 90)
+    setn(R, r, "kill_pause_days", 0, 365, integer=True)
     if "minimal_roi" in r:
         roi = {}
         if isinstance(r["minimal_roi"], dict):
@@ -212,6 +217,7 @@ def validate(raw, env=None):
     setn(P, pr, "entry_threshold", 0.05, 0.95)
     setn(P, pr, "daily_max_loss_pct", 0.5, 50)
     setn(P, pr, "total_max_loss_pct", 1, 90)
+    setn(P, pr, "kill_pause_days", 0, 365, integer=True)
     for k in ("allow_short", "use_llm", "daily_loss_enabled", "kill_switch_enabled"):
         setb(P, pr, k)
     if isinstance(pr.get("reset_request"), (str, int)) and not isinstance(pr.get("reset_request"), bool):

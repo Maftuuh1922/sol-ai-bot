@@ -14,7 +14,8 @@ MAX_LIST = 300
 def new_book(start_idr):
     return {"idr": float(start_idr), "sol": 0.0, "start_idr": float(start_idr), "loss_base": float(start_idr),
             "position": None, "trades": [], "orders": [], "cooldown_until": 0, "reentry_block": False,
-            "day": None, "day_start_eq": float(start_idr), "daily_block": None, "seq": 0}
+            "day": None, "day_start_eq": float(start_idr), "daily_block": None, "seq": 0,
+            "pause_until": 0}
 
 
 def equity(b, px): return b["idr"] + b["sol"] * px
@@ -129,10 +130,34 @@ def roll_day(b, day, px):
     return prev
 
 
-def loss_check(b, risk, px):
-    """Return ('daily'|'total', loss_pct) when a loss limit is hit, else None."""
+def paused(b, ts):
+    """True while the total-loss kill switch pause is running."""
+    return ts < (b.get("pause_until") or 0)
+
+
+def start_pause(b, risk, ts):
+    """Total-loss kill switch hit: pause new entries for risk.kill_pause_days. Returns the resume ts (0 = no pause)."""
+    days = risk.get("kill_pause_days", 0) or 0
+    if days <= 0: return 0
+    b["pause_until"] = int(ts + days * 86400)
+    return b["pause_until"]
+
+
+def maybe_resume(b, ts, px):
+    """End a finished pause: trading resumes and the total-loss baseline restarts at the equity now.
+    Returns True on the tick the pause ends."""
+    if b.get("pause_until") and ts >= b["pause_until"]:
+        b["pause_until"] = 0
+        b["loss_base"] = equity(b, px)
+        return True
+    return False
+
+
+def loss_check(b, risk, px, ts=None):
+    """Return ('daily'|'total', loss_pct) when a loss limit is hit, else None.
+    While the kill-switch pause runs (ts given) the total check is skipped: it already fired."""
     eq = equity(b, px)
-    if risk.get("total_loss_enabled") and b.get("loss_base"):
+    if risk.get("total_loss_enabled") and b.get("loss_base") and not (ts is not None and paused(b, ts)):
         loss = 100 * (1 - eq / b["loss_base"])
         if loss >= risk["total_max_loss_pct"]: return "total", round(loss, 2)
     if risk.get("daily_loss_enabled") and b.get("day_start_eq"):
@@ -153,6 +178,7 @@ def caps(risk, feat):
 def entry_blocked(b, risk, ts):
     if b["position"]: return None
     if risk.get("max_open_positions", 1) < 1: return "max posisi = 0"
+    if paused(b, ts): return "jeda kill switch rugi total"
     if b.get("daily_block"): return "batas rugi harian tercapai"
     if risk.get("cooldown_enabled") and ts < b.get("cooldown_until", 0): return "cooldown setelah rugi"
     if b.get("reentry_block"): return "menunggu sinyal baru setelah stop/ROI"

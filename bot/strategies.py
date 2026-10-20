@@ -119,6 +119,30 @@ def want_series(name, bars):
     raise ValueError(f"strategi tidak dikenal: {name}")
 
 
+def trend_filter(bars, daily, ma, tf_sec):
+    """Per bar of `bars`: True when the latest daily candle CLOSED by that bar's close is above its SMA(ma).
+    Uses only daily candles already closed at that moment (no lookahead). ma <= 0 -> always True.
+    Not enough daily history for the SMA -> False (no new entry without a known trend)."""
+    if not ma or ma <= 0: return [True] * len(bars)
+    dc = [d["c"] for d in daily]
+    s = sma(dc, int(ma))
+    out, j = [], -1
+    for b in bars:
+        close_ts = b["t"] + tf_sec
+        while j + 1 < len(daily) and daily[j + 1]["t"] + 86400 <= close_ts: j += 1
+        out.append(j >= 0 and s[j] is not None and dc[j] > s[j])
+    return out
+
+
+def trend_state(daily, ma):
+    """Latest closed daily candle vs SMA(ma) for the live bot: (ok, close, sma)."""
+    if not ma or ma <= 0: return True, None, None
+    dc = [d["c"] for d in daily]
+    if len(dc) < ma: return False, (dc[-1] if dc else None), None
+    v = sum(dc[-int(ma):]) / int(ma)
+    return dc[-1] > v, dc[-1], v
+
+
 TF_MINUTES = {"15m": 15, "1h": 60, "4h": 240, "1d": 1440}
 TF_API = {"15m": "15", "1h": "60", "4h": "240", "1d": "1D"}
 

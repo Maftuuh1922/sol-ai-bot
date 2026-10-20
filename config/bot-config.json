@@ -7,7 +7,8 @@
   "live_exit_request": "",
   "strategy": {
     "name": "ai_supertrend",
-    "timeframe": "1d"
+    "timeframe": "1d",
+    "trend_filter_ma": 200
   },
   "ai": {
     "enabled": true,
@@ -53,7 +54,8 @@
     "daily_loss_enabled": true,
     "daily_max_loss_pct": 5,
     "total_loss_enabled": true,
-    "total_max_loss_pct": 25
+    "total_max_loss_pct": 25,
+    "kill_pause_days": 14
   },
   "paper": {
     "start_idr": 1000000
@@ -87,6 +89,7 @@
     "daily_max_loss_pct": 3,
     "kill_switch_enabled": true,
     "total_max_loss_pct": 15,
+    "kill_pause_days": 14,
     "reset_request": ""
   }
 }
