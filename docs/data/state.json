@@ -844,8 +844,8 @@
  "config_warnings": [],
  "mode": "PAPER",
  "requested_mode": "PAPER",
- "price": 1882005.0,
- "price_at": "2026-10-23T21:17:34Z",
+ "price": 1866008.0,
+ "price_at": "2026-10-23T23:57:19Z",
  "status": "active",
  "summary": {
   "paper": {
@@ -906,7 +906,7 @@
   "mode": "PAPER",
   "book": {
    "start_usd": 250.0,
-   "balance": 243.48650366957736,
+   "balance": 243.4871302245621,
    "positions": {
     "SOL": {
      "id": "P1792390558-3",
@@ -925,7 +925,7 @@
      "r_dist": 4.094484729130343,
      "opened_at": 1792390558,
      "fees": 0.0281778633,
-     "funding": -0.06459236566009197,
+     "funding": -0.06253253276597329,
      "be_moved": false,
      "reason": "multi-agen -0.26"
     },
@@ -946,7 +946,7 @@
      "r_dist": 1753.8561293705861,
      "opened_at": 1792685075,
      "fees": 0.048653267400000005,
-     "funding": -0.039155156292276526,
+     "funding": -0.04184154417112006,
      "be_moved": false,
      "reason": "multi-agen -0.28"
     }
@@ -1115,14 +1115,14 @@
     }
    ],
    "fees_paid": 0.349495664074168,
-   "funding_paid": -0.13502123297451005,
+   "funding_paid": -0.1356477879592349,
    "seq": 13,
    "day": "2026-10-24",
    "day_start_eq": 244.2740382628975,
    "daily_block": null,
    "loss_base": 250.0,
    "kill": null,
-   "last_funding_hour": 497997
+   "last_funding_hour": 497999
   },
   "last_candle": "2026-10-23T16:00Z|SOL,BTC,ETH",
   "latest": {
@@ -4489,6 +4489,11 @@
     "t": 1792790254,
     "eq": 244.78,
     "hold": 248.87
+   },
+   {
+    "t": 1792799839,
+    "eq": 245.86,
+    "hold": 247.06
    }
   ],
   "hold": {
@@ -4616,6 +4621,10 @@
     [
      1792790254,
      5489059.460000001
+    ],
+    [
+     1792799839,
+     5390708.559999999
     ]
    ],
    "BTC": [
@@ -4734,6 +4743,10 @@
     [
      1792790254,
      44962.89302
+    ],
+    [
+     1792799839,
+     44453.08236
     ]
    ],
    "ETH": [
@@ -4852,13 +4865,17 @@
     [
      1792790254,
      1082443.2802000002
+    ],
+    [
+     1792799839,
+     1078292.5990000002
     ]
    ]
   },
   "last_check": {
-   "SOL": 1792790254,
-   "BTC": 1792790254,
-   "ETH": 1792790254
+   "SOL": 1792799839,
+   "BTC": 1792799839,
+   "ETH": 1792799839
   },
   "reset_done": "",
   "fng": {
@@ -4872,25 +4889,25 @@
    "ts": 1792790254
   },
   "prices": {
-   "BTC": 81440.5,
-   "ETH": 2401.75,
-   "SOL": 104.045
+   "BTC": 81162.5,
+   "ETH": 2385.75,
+   "SOL": 102.835
   },
-  "prices_at": "2026-10-23T21:17:34Z",
+  "prices_at": "2026-10-23T23:57:19Z",
   "summary": {
-   "equity": 244.78,
+   "equity": 245.86,
    "start": 250.0,
-   "pnl_usd": -5.22,
-   "pnl_pct": -2.09,
-   "hold_equity": 248.87,
+   "pnl_usd": -4.14,
+   "pnl_pct": -1.66,
+   "hold_equity": 247.06,
    "balance": 243.49,
    "used_margin": 170.74,
    "fees": 0.35,
    "funding": -0.14,
    "trades": 3,
    "open": 2,
-   "daily_loss_pct": -0.21,
-   "total_loss_pct": 2.09,
+   "daily_loss_pct": -0.65,
+   "total_loss_pct": 1.66,
    "kill": null,
    "daily_block": null,
    "per_pair": {
@@ -4905,14 +4922,14 @@
      "realized": -4.09,
      "trades": 2,
      "wins": 0,
-     "unrealized": 0.33,
+     "unrealized": 0.7,
      "win_rate": 0.0
     },
     "SOL": {
      "realized": 0.0,
      "trades": 0,
      "wins": 0,
-     "unrealized": 1.06,
+     "unrealized": 1.77,
      "win_rate": null
     }
    }
