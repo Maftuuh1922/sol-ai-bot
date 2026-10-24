@@ -11,7 +11,7 @@
    "orders": [],
    "cooldown_until": 0,
    "reentry_block": false,
-   "day": "2026-10-24",
+   "day": "2026-10-25",
    "day_start_eq": 1000000.0,
    "daily_block": null,
    "seq": 0
@@ -921,9 +921,19 @@
    "title": "Agen · 4h · Gonka · zai-org/GLM-5.3-Flash",
    "body": "SOL short -0.51 → HOLD; BTC short -0.53 → HOLD; ETH short -0.58 → veto: Maks 2 posisi bersamaan",
    "mode": "PAPER"
+  },
+  {
+   "id": "ev53",
+   "seq": 53,
+   "ts": 1792869787,
+   "at": "2026-10-24T19:23:07Z",
+   "type": "summary",
+   "title": "Ringkasan 2026-10-24",
+   "body": "Ekuitas Rp1.000.000 (+0.00% hari itu), 0 trade ditutup, eksposur 0%, SOL Rp1.836.351. Bot AKTIF.",
+   "mode": "PAPER"
   }
  ],
- "event_seq": 52,
+ "event_seq": 53,
  "last_candle": {
   "1d": "2026-10-23T00:00Z"
  },
@@ -931,8 +941,8 @@
  "config_warnings": [],
  "mode": "PAPER",
  "requested_mode": "PAPER",
- "price": 1824082.0,
- "price_at": "2026-10-24T16:52:10Z",
+ "price": 1836351.0,
+ "price_at": "2026-10-24T19:23:06Z",
  "status": "active",
  "summary": {
   "paper": {
@@ -993,7 +1003,7 @@
   "mode": "PAPER",
   "book": {
    "start_usd": 250.0,
-   "balance": 243.51534589213662,
+   "balance": 243.5215894329429,
    "positions": {
     "SOL": {
      "id": "P1792390558-3",
@@ -1012,7 +1022,7 @@
      "r_dist": 4.094484729130343,
      "opened_at": 1792390558,
      "fees": 0.0281778633,
-     "funding": -0.06897933408507054,
+     "funding": -0.07122645815122024,
      "be_moved": true,
      "reason": "multi-agen -0.26"
     },
@@ -1033,7 +1043,7 @@
      "r_dist": 1753.8561293705861,
      "opened_at": 1792685075,
      "fees": 0.048653267400000005,
-     "funding": -0.06361041042655549,
+     "funding": -0.06760682716668,
      "be_moved": true,
      "reason": "multi-agen -0.28"
     }
@@ -1202,14 +1212,14 @@
     }
    ],
    "fees_paid": 0.349495664074168,
-   "funding_paid": -0.16386345553376758,
+   "funding_paid": -0.17010699634004178,
    "seq": 13,
-   "day": "2026-10-24",
-   "day_start_eq": 244.2740382628975,
+   "day": "2026-10-25",
+   "day_start_eq": 247.7630139322973,
    "daily_block": null,
    "loss_base": 250.0,
    "kill": null,
-   "last_funding_hour": 498016
+   "last_funding_hour": 498019
   },
   "last_candle": "2026-10-24T12:00Z|SOL,BTC,ETH",
   "latest": {
@@ -5045,6 +5055,11 @@
     "t": 1792860730,
     "eq": 248.62,
     "hold": 241.7
+   },
+   {
+    "t": 1792869786,
+    "eq": 247.76,
+    "hold": 243.4
    }
   ],
   "hold": {
@@ -5192,6 +5207,10 @@
     [
      1792860730,
      5529212.099999996
+    ],
+    [
+     1792869786,
+     5557616.060000003
     ]
    ],
    "BTC": [
@@ -5330,6 +5349,10 @@
     [
      1792860730,
      43647.3602
+    ],
+    [
+     1792869786,
+     42728.2405
     ]
    ],
    "ETH": [
@@ -5468,13 +5491,17 @@
     [
      1792860730,
      1113795.3868000002
+    ],
+    [
+     1792869786,
+     1116630.393
     ]
    ]
   },
   "last_check": {
-   "SOL": 1792860730,
-   "BTC": 1792860730,
-   "ETH": 1792860730
+   "SOL": 1792869786,
+   "BTC": 1792869786,
+   "ETH": 1792869786
   },
   "reset_done": "",
   "fng": {
@@ -5488,25 +5515,25 @@
    "ts": 1792860730
   },
   "prices": {
-   "BTC": 80148.5,
-   "ETH": 2314.65,
-   "SOL": 100.485
+   "BTC": 80494.5,
+   "ETH": 2337.85,
+   "SOL": 101.175
   },
-  "prices_at": "2026-10-24T16:52:10Z",
+  "prices_at": "2026-10-24T19:23:06Z",
   "summary": {
-   "equity": 248.62,
+   "equity": 247.76,
    "start": 250.0,
-   "pnl_usd": -1.38,
-   "pnl_pct": -0.55,
-   "hold_equity": 241.7,
+   "pnl_usd": -2.24,
+   "pnl_pct": -0.89,
+   "hold_equity": 243.4,
    "balance": 243.52,
    "used_margin": 170.74,
    "fees": 0.35,
-   "funding": -0.16,
+   "funding": -0.17,
    "trades": 3,
    "open": 2,
-   "daily_loss_pct": -1.78,
-   "total_loss_pct": 0.55,
+   "daily_loss_pct": 0.0,
+   "total_loss_pct": 0.89,
    "kill": null,
    "daily_block": null,
    "per_pair": {
@@ -5521,14 +5548,14 @@
      "realized": -4.09,
      "trades": 2,
      "wins": 0,
-     "unrealized": 2.07,
+     "unrealized": 1.61,
      "win_rate": 0.0
     },
     "SOL": {
      "realized": 0.0,
      "trades": 0,
      "wins": 0,
-     "unrealized": 3.17,
+     "unrealized": 2.77,
      "win_rate": null
     }
    }
