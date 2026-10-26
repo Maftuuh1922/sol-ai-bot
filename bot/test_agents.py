@@ -36,6 +36,12 @@ check(rv["trend"]["dir"] == "long", "trend agent long in uptrend")
 co = AG.coordinate(rv, 0.25, True)
 check(co["direction"] in ("long", "flat") and co["score"] > 0, f"coordinator positive {co}")
 check(AG.coordinate({a: AG.vote("short", 1, "x") for a in AG.AGENTS}, 0.25, False)["direction"] == "flat", "no shorts when disabled")
+# --- funding moderate + regime transisi: arahnya harus konsisten, bukan kebalik ---
+# Funding moderat positif (APR ~17%) searah dengan ekstrem positif (short), bukan long.
+check(AG.a_funding({"funding_hourly_pct": 0.002, "funding_apr_pct": 17.5})["dir"] == "short", "funding moderat positif -> short (bukan long)")
+check(AG.a_funding({"funding_hourly_pct": -0.001, "funding_apr_pct": -8.8})["dir"] == "long", "funding moderat negatif -> long (bukan short)")
+# Rezim transisi (ER 0.2-0.35) bukan tren: vote flat, jangan paksa arah di chop.
+check(AG.a_regime({"efficiency_ratio": 0.30, "atr_pct": 1.0, "atr_pct_median100": 1.0, "roc20_pct": 5.0})["dir"] == "flat", "rezim transisi -> flat")
 
 # --- LLM parse + fallback ---
 good = {"coins": {"SOL": {a: {"dir": "short", "conf": 70, "reason": "r"} for a in AG.AGENTS}}}

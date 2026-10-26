@@ -66,7 +66,7 @@ order live Hyperliquid di repo ini (hanya stub `live_order` yang selalu gagal).
 
 - 6 agen dijawab **satu panggilan AI** untuk semua pair (rantai NafNaf → Gonka → Arcee); gagal → versi aturan.
 - **Koordinator**: skor berbobot (tren 1.5, momentum 1, rezim 0.75, funding 0.75, sentimen 0.5, likuiditas 0.5) → long/short/flat.
-- **Agen risiko (kode, bukan AI, veto final)**: ukuran = risiko % ekuitas ÷ jarak stop (2×ATR), stop-loss + take-profit (2R)
+- **Agen risiko (kode, bukan AI, veto final)**: ukuran = risiko % ekuitas ÷ jarak stop (2×ATR), stop-loss + take-profit (1,75R), entry hanya saat skor koordinator ≥ 0,40
   ditulis **sebelum** entry, leverage serendah mungkin ≤ maks (default 3x, batas keras 5x, ≤ maks bursa), maks posisi
   bersamaan, batas rugi harian, kill switch, buffer likuidasi (≥ 2× jarak stop), minimal order $10, stop ke impas setelah +1R.
   Trade tanpa stop selalu ditolak (juga oleh engine).

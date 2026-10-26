@@ -100,7 +100,9 @@ def a_regime(f):
     if ap and med and ap > 2.2 * med: return vote("flat", 0.8, f"Volatilitas ekstrem (ATR {ap}% vs median {med}%)")
     if er >= 0.35: return vote(d, min(0.85, 0.4 + er), f"Rezim trending (ER {er}), ikut arah 20 bar")
     if er < 0.2: return vote("flat", 0.7, f"Rezim sideways/chop (ER {er})")
-    return vote(d, 0.25, f"Rezim transisi (ER {er})")
+    # Transisi (0.2 <= ER < 0.35) bukan tren: jangan paksa arah, kalau tidak
+    # vote arah lemah ini ikut mendorong skor koordinator melewati ambang di chop.
+    return vote("flat", 0.5, f"Rezim transisi (ER {er}): belum trending")
 
 
 def a_funding(f):
@@ -114,8 +116,12 @@ def a_funding(f):
         if oi > 0 and r24 > 0: return vote("long", 0.5, f"OI naik {oi:+.1f}% bersama harga: uang baru masuk long")
         if oi > 0 and r24 < 0: return vote("short", 0.5, f"OI naik {oi:+.1f}% saat harga turun: short baru")
         if oi < 0: return vote("flat", 0.4, f"OI turun {oi:+.1f}%: posisi ditutup, tren melemah")
-    if apr > 15: return vote("long", 0.2, f"Funding positif moderat ({apr:.0f}%/thn)")
-    if apr < -5: return vote("short", 0.2, f"Funding negatif ({apr:.0f}%/thn)")
+    # Cabang moderat sebelumnya kebalik dari cabang ekstrem di atas
+    # (ekstrem positif -> short, ekstrem negatif -> long). Samakan arahnya,
+    # hanya dengan keyakinan lebih kecil: funding positif = long ramai,
+    # funding negatif = short ramai.
+    if apr > 15: return vote("short", 0.2, f"Funding positif moderat ({apr:.0f}%/thn): long mulai ramai")
+    if apr < -5: return vote("long", 0.2, f"Funding negatif ({apr:.0f}%/thn): short mulai ramai")
     return vote("flat", 0.3, f"Funding netral ({apr:.0f}%/thn)")
 
 
