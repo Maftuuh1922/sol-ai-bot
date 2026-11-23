@@ -2505,9 +2505,29 @@
    "title": "Agen AI → aturan",
    "body": "gonka:zai-org/GLM-5.3-Flash -> RuntimeError: jawaban kosong: token habis untuk reasoning (max_tokens=3500)",
    "mode": "PAPER"
+  },
+  {
+   "id": "ev167",
+   "seq": 167,
+   "ts": 1795401179,
+   "at": "2026-11-23T02:32:59Z",
+   "type": "agent",
+   "title": "Agen · 4h · Gonka · zai-org/GLM-5.3-Flash",
+   "body": "SOL flat -0.20 → veto: Koordinator: flat (tidak ada sinyal cukup kuat); BTC flat -0.26 → HOLD; ETH flat -0.12 → veto: Koordinator: flat (tidak ada sinyal cukup kuat)",
+   "mode": "PAPER"
+  },
+  {
+   "id": "ev168",
+   "seq": 168,
+   "ts": 1795401179,
+   "at": "2026-11-23T02:32:59Z",
+   "type": "error",
+   "title": "Bot error",
+   "body": "RuntimeError: Indodax: HTTP 403 <!doctype html>\n<html lang=\"en\">\n  <head>\n    \n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n\n    \n    <style>/*!\n * Bootstrap v4.4.1 (https://getbootstrap.com/)\n * Copyright 2011-2019 The Bootstr",
+   "mode": "PAPER"
   }
  ],
- "event_seq": 166,
+ "event_seq": 168,
  "last_candle": {
   "1d": "2026-11-04T00:00Z"
  },
@@ -2577,7 +2597,7 @@
   "mode": "PAPER",
   "book": {
    "start_usd": 250.0,
-   "balance": 243.77242660677817,
+   "balance": 243.77520853173547,
    "positions": {
     "BTC": {
      "id": "P1795274082-34",
@@ -2596,7 +2616,7 @@
      "r_dist": 3254.319927776334,
      "opened_at": 1795274082,
      "fees": 0.019917515700000003,
-     "funding": 0.003340009964403456,
+     "funding": 0.0005580850071055443,
      "be_moved": false,
      "reason": "multi-agen -0.47"
     }
@@ -3113,199 +3133,57 @@
     }
    ],
    "fees_paid": 0.7645720765272171,
-   "funding_paid": -0.5081668972439223,
+   "funding_paid": -0.5109488222012202,
    "seq": 35,
    "day": "2026-11-23",
    "day_start_eq": 243.3076690222902,
    "daily_block": null,
    "loss_base": 250.0,
    "kill": null,
-   "last_funding_hour": 498717
+   "last_funding_hour": 498722
   },
-  "last_candle": "2026-11-22T16:00Z|SOL,BTC,ETH",
+  "last_candle": "2026-11-22T20:00Z|SOL,BTC,ETH",
   "latest": {
    "SOL": {
     "coin": "SOL",
-    "ts": 1795384650,
-    "price": 70.4395,
+    "ts": 1795401105,
+    "price": 70.1855,
     "votes": {
      "trend": {
       "dir": "short",
       "conf": 0.85,
-      "reason": "Harga < EMA50 < EMA200, Supertrend turun",
-      "source": "rule"
+      "reason": "Harga di bawah semua EMA, supertrend DOWN, downtrend jelas",
+      "source": "llm"
      },
      "momentum": {
       "dir": "flat",
-      "conf": 0.4,
-      "reason": "Momentum lemah/campur (RSI 46.6, ROC20 -6.1%)",
-      "source": "rule"
-     },
-     "regime": {
-      "dir": "flat",
-      "conf": 0.5,
-      "reason": "Rezim transisi (ER 0.26): belum trending",
-      "source": "rule"
-     },
-     "funding": {
-      "dir": "flat",
-      "conf": 0.3,
-      "reason": "Funding netral (3%/thn)",
-      "source": "rule"
-     },
-     "sentiment": {
-      "dir": "long",
-      "conf": 0.55,
-      "reason": "Extreme fear (11): kontrarian beli",
-      "source": "rule"
-     },
-     "liquidity": {
-      "dir": "long",
-      "conf": 0.42,
-      "reason": "Kedalaman ±1% condong bid (+0.42)",
-      "source": "rule"
-     }
-    },
-    "coordinator": {
-     "direction": "flat",
-     "score": -0.158,
-     "confidence": 0.2,
-     "longs": 2,
-     "shorts": 1,
-     "reason": "Skor -0.16 (ambang ±0.4); 2 long, 1 short, 3 flat"
-    },
-    "risk": {
-     "approved": false,
-     "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
-     "plan": null,
-     "checks": []
-    },
-    "action": "—",
-    "features": {
-     "rsi14": 46.6,
-     "atr_pct": 2.42,
-     "efficiency_ratio": 0.26,
-     "supertrend": "DOWN",
-     "funding_apr_pct": 3.2,
-     "oi_change_24h_pct": -0.64,
-     "fear_greed": 11,
-     "book_imbalance": 0.424,
-     "spread_bps": 0.14,
-     "roc20_pct": -6.08
-    },
-    "source": "Cadangan · aturan"
-   },
-   "BTC": {
-    "coin": "BTC",
-    "ts": 1795384650,
-    "price": 60922.5,
-    "votes": {
-     "trend": {
-      "dir": "short",
-      "conf": 0.85,
-      "reason": "Harga < EMA50 < EMA200, Supertrend turun",
-      "source": "rule"
-     },
-     "momentum": {
-      "dir": "flat",
-      "conf": 0.4,
-      "reason": "Momentum lemah/campur (RSI 47.6, ROC20 -5.0%)",
-      "source": "rule"
-     },
-     "regime": {
-      "dir": "flat",
-      "conf": 0.5,
-      "reason": "Rezim transisi (ER 0.21): belum trending",
-      "source": "rule"
-     },
-     "funding": {
-      "dir": "flat",
-      "conf": 0.3,
-      "reason": "Funding netral (11%/thn)",
-      "source": "rule"
-     },
-     "sentiment": {
-      "dir": "long",
-      "conf": 0.55,
-      "reason": "Extreme fear (11): kontrarian beli",
-      "source": "rule"
-     },
-     "liquidity": {
-      "dir": "long",
-      "conf": 0.44,
-      "reason": "Kedalaman ±1% condong bid (+0.44)",
-      "source": "rule"
-     }
-    },
-    "coordinator": {
-     "direction": "flat",
-     "score": -0.156,
-     "confidence": 0.19,
-     "longs": 2,
-     "shorts": 1,
-     "reason": "Skor -0.16 (ambang ±0.4); 2 long, 1 short, 3 flat"
-    },
-    "risk": {
-     "approved": false,
-     "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
-     "plan": null,
-     "checks": []
-    },
-    "action": "HOLD",
-    "features": {
-     "rsi14": 47.6,
-     "atr_pct": 2.38,
-     "efficiency_ratio": 0.21,
-     "supertrend": "DOWN",
-     "funding_apr_pct": 10.9,
-     "oi_change_24h_pct": 2.46,
-     "fear_greed": 11,
-     "book_imbalance": 0.441,
-     "spread_bps": 0.16,
-     "roc20_pct": -5.04
-    },
-    "source": "Cadangan · aturan"
-   },
-   "ETH": {
-    "coin": "ETH",
-    "ts": 1795384650,
-    "price": 1719.75,
-    "votes": {
-     "trend": {
-      "dir": "short",
-      "conf": 0.85,
-      "reason": "Harga < EMA50 < EMA200, Supertrend turun",
-      "source": "rule"
-     },
-     "momentum": {
-      "dir": "flat",
-      "conf": 0.4,
-      "reason": "Momentum lemah/campur (RSI 49.6, ROC20 -5.1%)",
-      "source": "rule"
+      "conf": 0.45,
+      "reason": "RSI netral, MACD positif tipis, ROC negatif, sinyal campur",
+      "source": "llm"
      },
      "regime": {
       "dir": "flat",
       "conf": 0.7,
-      "reason": "Rezim sideways/chop (ER 0.19)",
-      "source": "rule"
+      "reason": "Efficiency ratio 0.17 sangat rendah, pasar choppy, volatilitas normal",
+      "source": "llm"
      },
      "funding": {
       "dir": "flat",
-      "conf": 0.3,
-      "reason": "Funding netral (-2%/thn)",
-      "source": "rule"
+      "conf": 0.35,
+      "reason": "Funding APR 1% netral, premium tipis negatif, OI stagnan",
+      "source": "llm"
      },
      "sentiment": {
       "dir": "long",
       "conf": 0.55,
-      "reason": "Extreme fear (11): kontrarian beli",
-      "source": "rule"
+      "reason": "Fear Greed 11 ekstrem takut, kontrarian beli perlahan",
+      "source": "llm"
      },
      "liquidity": {
       "dir": "flat",
-      "conf": 0.3,
-      "reason": "Likuiditas seimbang",
-      "source": "rule"
+      "conf": 0.35,
+      "reason": "Imbalance bid positif tapi volume relatif rendah 0.3",
+      "source": "llm"
      }
     },
     "coordinator": {
@@ -3324,132 +3202,163 @@
     },
     "action": "—",
     "features": {
-     "rsi14": 49.6,
-     "atr_pct": 2.48,
-     "efficiency_ratio": 0.19,
+     "rsi14": 48.7,
+     "atr_pct": 2.29,
+     "efficiency_ratio": 0.17,
      "supertrend": "DOWN",
-     "funding_apr_pct": -2.5,
-     "oi_change_24h_pct": -0.75,
+     "funding_apr_pct": 1.0,
+     "oi_change_24h_pct": -0.22,
      "fear_greed": 11,
-     "book_imbalance": 0.013,
-     "spread_bps": 0.58,
-     "roc20_pct": -5.09
+     "book_imbalance": 0.247,
+     "spread_bps": 0.14,
+     "roc20_pct": -3.89
     },
-    "source": "Cadangan · aturan"
+    "source": "Gonka · zai-org/GLM-5.3-Flash"
+   },
+   "BTC": {
+    "coin": "BTC",
+    "ts": 1795401105,
+    "price": 60629.5,
+    "votes": {
+     "trend": {
+      "dir": "short",
+      "conf": 0.8,
+      "reason": "Di bawah EMA20/50/200, supertrend DOWN, struktur bearish",
+      "source": "llm"
+     },
+     "momentum": {
+      "dir": "flat",
+      "conf": 0.45,
+      "reason": "RSI 50 netral, MACD positif, ROC negatif, tidak konsisten",
+      "source": "llm"
+     },
+     "regime": {
+      "dir": "flat",
+      "conf": 0.7,
+      "reason": "ER 0.12 choppy ekstrem, ATR di atas median, tidak trend jelas",
+      "source": "llm"
+     },
+     "funding": {
+      "dir": "short",
+      "conf": 0.5,
+      "reason": "Funding APR 10.9% tinggi, longs ramai, premium negatif, risiko squeeze",
+      "source": "llm"
+     },
+     "sentiment": {
+      "dir": "long",
+      "conf": 0.55,
+      "reason": "Fear Greed 11 ekstrem takut, sinyal kontrarian beli",
+      "source": "llm"
+     },
+     "liquidity": {
+      "dir": "flat",
+      "conf": 0.45,
+      "reason": "Imbalance 0.517 netral, spread rapat, depth dalam, tidak meyakinkan",
+      "source": "llm"
+     }
+    },
+    "coordinator": {
+     "direction": "flat",
+     "score": -0.26,
+     "confidence": 0.33,
+     "longs": 1,
+     "shorts": 2,
+     "reason": "Skor -0.26 (ambang ±0.4); 1 long, 2 short, 3 flat"
+    },
+    "risk": {
+     "approved": false,
+     "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
+     "plan": null,
+     "checks": []
+    },
+    "action": "HOLD",
+    "features": {
+     "rsi14": 50.6,
+     "atr_pct": 2.27,
+     "efficiency_ratio": 0.12,
+     "supertrend": "DOWN",
+     "funding_apr_pct": 10.9,
+     "oi_change_24h_pct": 2.5,
+     "fear_greed": 11,
+     "book_imbalance": 0.517,
+     "spread_bps": 0.16,
+     "roc20_pct": -2.92
+    },
+    "source": "Gonka · zai-org/GLM-5.3-Flash"
+   },
+   "ETH": {
+    "coin": "ETH",
+    "ts": 1795401105,
+    "price": 1702.75,
+    "votes": {
+     "trend": {
+      "dir": "short",
+      "conf": 0.75,
+      "reason": "Di bawah EMA50/200, supertrend DOWN, tapi menempel EMA20",
+      "source": "llm"
+     },
+     "momentum": {
+      "dir": "flat",
+      "conf": 0.45,
+      "reason": "RSI 51 netral, MACD positif tipis, ROC negatif, campur",
+      "source": "llm"
+     },
+     "regime": {
+      "dir": "flat",
+      "conf": 0.7,
+      "reason": "ER 0.12 choppy, ATR sekitar median, tanpa arah jelas",
+      "source": "llm"
+     },
+     "funding": {
+      "dir": "long",
+      "conf": 0.35,
+      "reason": "Funding APR -7.6% negatif, shorts ramai bayar, potensi squeeze naik",
+      "source": "llm"
+     },
+     "sentiment": {
+      "dir": "long",
+      "conf": 0.55,
+      "reason": "Fear Greed 11 ekstrem takut, kontrarian akumulasi perlahan",
+      "source": "llm"
+     },
+     "liquidity": {
+      "dir": "flat",
+      "conf": 0.35,
+      "reason": "Imbalance bid tipis, spread 0.59bps lebih lebar, volume rendah",
+      "source": "llm"
+     }
+    },
+    "coordinator": {
+     "direction": "flat",
+     "score": -0.118,
+     "confidence": 0.15,
+     "longs": 2,
+     "shorts": 1,
+     "reason": "Skor -0.12 (ambang ±0.4); 2 long, 1 short, 3 flat"
+    },
+    "risk": {
+     "approved": false,
+     "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
+     "plan": null,
+     "checks": []
+    },
+    "action": "—",
+    "features": {
+     "rsi14": 51.2,
+     "atr_pct": 2.33,
+     "efficiency_ratio": 0.12,
+     "supertrend": "DOWN",
+     "funding_apr_pct": -7.6,
+     "oi_change_24h_pct": -0.85,
+     "fear_greed": 11,
+     "book_imbalance": 0.108,
+     "spread_bps": 0.59,
+     "roc20_pct": -3.24
+    },
+    "source": "Gonka · zai-org/GLM-5.3-Flash"
    }
   },
   "decisions": [
-   {
-    "ts": 1792595298,
-    "coin": "SOL",
-    "dir": "flat",
-    "score": 0.025,
-    "approved": false,
-    "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
-    "action": "HOLD",
-    "price": 107.765,
-    "votes": {
-     "trend": [
-      "short",
-      0.4
-     ],
-     "momentum": [
-      "long",
-      0.6
-     ],
-     "regime": [
-      "flat",
-      0.7
-     ],
-     "funding": [
-      "flat",
-      0.3
-     ],
-     "sentiment": [
-      "long",
-      0.25
-     ],
-     "liquidity": [
-      "flat",
-      0.3
-     ]
-    },
-    "source": "Cadangan · aturan"
-   },
-   {
-    "ts": 1792595298,
-    "coin": "BTC",
-    "dir": "long",
-    "score": 0.451,
-    "approved": true,
-    "veto": null,
-    "action": "OPEN LONG",
-    "price": 84634.5,
-    "votes": {
-     "trend": [
-      "long",
-      0.85
-     ],
-     "momentum": [
-      "long",
-      0.67
-     ],
-     "regime": [
-      "flat",
-      0.7
-     ],
-     "funding": [
-      "flat",
-      0.3
-     ],
-     "sentiment": [
-      "long",
-      0.25
-     ],
-     "liquidity": [
-      "long",
-      0.37
-     ]
-    },
-    "source": "Cadangan · aturan"
-   },
-   {
-    "ts": 1792595298,
-    "coin": "ETH",
-    "dir": "flat",
-    "score": 0.222,
-    "approved": false,
-    "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
-    "action": "—",
-    "price": 2507.45,
-    "votes": {
-     "trend": [
-      "flat",
-      0.5
-     ],
-     "momentum": [
-      "long",
-      0.61
-     ],
-     "regime": [
-      "flat",
-      0.7
-     ],
-     "funding": [
-      "long",
-      0.5
-     ],
-     "sentiment": [
-      "long",
-      0.25
-     ],
-     "liquidity": [
-      "flat",
-      0.3
-     ]
-    },
-    "source": "Cadangan · aturan"
-   },
    {
     "ts": 1792610378,
     "coin": "SOL",
@@ -12218,6 +12127,117 @@
      ]
     },
     "source": "Cadangan · aturan"
+   },
+   {
+    "ts": 1795401105,
+    "coin": "SOL",
+    "dir": "flat",
+    "score": -0.2,
+    "approved": false,
+    "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
+    "action": "—",
+    "price": 70.1855,
+    "votes": {
+     "trend": [
+      "short",
+      0.85
+     ],
+     "momentum": [
+      "flat",
+      0.45
+     ],
+     "regime": [
+      "flat",
+      0.7
+     ],
+     "funding": [
+      "flat",
+      0.35
+     ],
+     "sentiment": [
+      "long",
+      0.55
+     ],
+     "liquidity": [
+      "flat",
+      0.35
+     ]
+    },
+    "source": "Gonka · zai-org/GLM-5.3-Flash"
+   },
+   {
+    "ts": 1795401105,
+    "coin": "BTC",
+    "dir": "flat",
+    "score": -0.26,
+    "approved": false,
+    "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
+    "action": "HOLD",
+    "price": 60629.5,
+    "votes": {
+     "trend": [
+      "short",
+      0.8
+     ],
+     "momentum": [
+      "flat",
+      0.45
+     ],
+     "regime": [
+      "flat",
+      0.7
+     ],
+     "funding": [
+      "short",
+      0.5
+     ],
+     "sentiment": [
+      "long",
+      0.55
+     ],
+     "liquidity": [
+      "flat",
+      0.45
+     ]
+    },
+    "source": "Gonka · zai-org/GLM-5.3-Flash"
+   },
+   {
+    "ts": 1795401105,
+    "coin": "ETH",
+    "dir": "flat",
+    "score": -0.118,
+    "approved": false,
+    "veto": "Koordinator: flat (tidak ada sinyal cukup kuat)",
+    "action": "—",
+    "price": 1702.75,
+    "votes": {
+     "trend": [
+      "short",
+      0.75
+     ],
+     "momentum": [
+      "flat",
+      0.45
+     ],
+     "regime": [
+      "flat",
+      0.7
+     ],
+     "funding": [
+      "long",
+      0.35
+     ],
+     "sentiment": [
+      "long",
+      0.55
+     ],
+     "liquidity": [
+      "flat",
+      0.35
+     ]
+    },
+    "source": "Gonka · zai-org/GLM-5.3-Flash"
    }
   ],
   "equity": [
@@ -12720,6 +12740,11 @@
     "t": 1795384650,
     "eq": 243.31,
     "hold": 177.59
+   },
+   {
+    "t": 1795401105,
+    "eq": 243.53,
+    "hold": 176.51
    }
   ],
   "hold": {
@@ -12732,10 +12757,6 @@
   },
   "oi_hist": {
    "SOL": [
-    [
-     1793280942,
-     5643722.699999999
-    ],
     [
      1793301374,
      5646612.820000001
@@ -12891,13 +12912,13 @@
     [
      1795384650,
      4088339.3000000003
+    ],
+    [
+     1795401105,
+     4105622.2800000007
     ]
    ],
    "BTC": [
-    [
-     1793280942,
-     43414.78796
-    ],
     [
      1793301374,
      42299.33902
@@ -13053,13 +13074,13 @@
     [
      1795384650,
      38180.43244
+    ],
+    [
+     1795401105,
+     38196.65978
     ]
    ],
    "ETH": [
-    [
-     1793280942,
-     1121323.8552
-    ],
     [
      1793301374,
      1088993.8514000003
@@ -13215,45 +13236,49 @@
     [
      1795384650,
      615366.1928000002
+    ],
+    [
+     1795401105,
+     614746.4053999997
     ]
    ]
   },
   "last_check": {
-   "SOL": 1795384650,
-   "BTC": 1795384650,
-   "ETH": 1795384650
+   "SOL": 1795401105,
+   "BTC": 1795401105,
+   "ETH": 1795401105
   },
   "reset_done": "",
   "fng": {
    "value": 11,
-   "prev": 12,
+   "prev": 11,
    "label": "Extreme Fear"
   },
   "llm": {
-   "source": "Cadangan · aturan",
-   "error": "gonka:zai-org/GLM-5.3-Flash -> RuntimeError: jawaban kosong: token habis untuk reasoning (max_tokens=3500)",
-   "ts": 1795384650
+   "source": "Gonka · zai-org/GLM-5.3-Flash",
+   "error": null,
+   "ts": 1795401105
   },
   "prices": {
-   "BTC": 60922.5,
-   "ETH": 1719.75,
-   "SOL": 70.4395
+   "BTC": 60629.5,
+   "ETH": 1702.75,
+   "SOL": 70.1855
   },
-  "prices_at": "2026-11-22T21:57:30Z",
+  "prices_at": "2026-11-23T02:31:45Z",
   "summary": {
-   "equity": 243.31,
+   "equity": 243.53,
    "start": 250.0,
-   "pnl_usd": -6.69,
-   "pnl_pct": -2.68,
-   "hold_equity": 177.59,
-   "balance": 243.77,
+   "pnl_usd": -6.47,
+   "pnl_pct": -2.59,
+   "hold_equity": 176.51,
+   "balance": 243.78,
    "used_margin": 44.26,
    "fees": 0.76,
    "funding": -0.51,
    "trades": 11,
    "open": 1,
-   "daily_loss_pct": 0.0,
-   "total_loss_pct": 2.68,
+   "daily_loss_pct": -0.09,
+   "total_loss_pct": 2.59,
    "kill": null,
    "daily_block": null,
    "per_pair": {
@@ -13268,7 +13293,7 @@
      "realized": -6.25,
      "trades": 5,
      "wins": 2,
-     "unrealized": -0.47,
+     "unrealized": -0.25,
      "win_rate": 40.0
     },
     "SOL": {
